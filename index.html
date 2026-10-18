@@ -163,6 +163,11 @@ ol.mp .mpd{font-weight:400;margin-top:3px;white-space:pre-line}
 .grid7 button.d.usual{background:var(--bg);color:var(--muted);border-style:dotted}
 .grid7 button.d.awaysent,.grid7 button.d.insent{background:var(--wait-soft);color:var(--wait);border:2px dashed var(--wait)}
 .grid7 button.d.sel{outline:3px solid var(--navy);outline-offset:1px}
+/* past dates (calendar only): grey, read-only */
+.grid7 button.d.past{background:var(--off);color:var(--off-ink);border-color:var(--line)}
+.dc.past{background:var(--off);border:2px solid var(--line)}
+.dc.past details.fold{background:var(--surface)}
+.ptag{justify-self:start;font:800 .8rem var(--f-body);letter-spacing:.05em;text-transform:uppercase;background:var(--surface);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:3px 10px;margin-top:4px}
 .leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.88rem;color:var(--muted)}
 .leg i{display:inline-block;width:15px;height:15px;border-radius:4px;vertical-align:-2px;margin-right:6px}
 /* tab bar */
@@ -349,7 +354,7 @@ let intents=store.get("band2.intents",{});   // {memberId:{date:{want:"in"|"away
 let queue=store.get("band2.queue",null);     // {mid,items:[{date,want,reason}],at} waiting out the Undo time
 let fs=store.get("band2.fs",17);
 // The app always opens on This week, with My dates as a list (also after more than 5 minutes away from the app)
-let tab="week",dview="list",shown=10,calM=null,calSel=null;
+let tab="week",dview="list",shown=10,calM=null,calSel=null,calPast=null;
 document.documentElement.style.setProperty("--fs",fs+"px");
 // carry over v1 "sent" markers so nothing looks lost after the update
 (function migrate(){if(store.get("band2.migrated",false))return;
@@ -395,9 +400,10 @@ function evHtml(s){const ev=evOn(s);return ev.length?'<span class="ev">★ '+esc
 
 // ----- music -----
 let recs=[];
-function musicHtml(list){if(!list.length)return '<p class="muted">Not set yet</p>';
+// on a past date, poSun is the Sunday a play-out was planned for, so its label names the date
+function musicHtml(list,none,poSun){if(!list.length)return '<p class="muted">'+(none||"Not set yet")+'</p>';
   return '<ol class="mus">'+list.map(r=>{let btn="";if(r.l){btn='<button type="button" class="recb" data-rec="'+recs.length+'" aria-label="Listen to '+esc(r.t)+'">'+ICON.play+'Listen</button>';recs.push(r)}
-    const tag=r.cat?r.cat:r.po?r.po+" this Sunday":"";
+    const tag=r.cat?r.cat:r.po?r.po+(poSun?" "+fmt(poSun,true):" this Sunday"):"";
     return '<li><div class="mrow"><div><b>'+esc(r.t)+'</b>'+(tag?' <span class="tag">'+esc(tag)+'</span>':'')+(r.i?'<span class="mi">'+esc(r.i)+'</span>':'')+'</div>'+btn+'</div></li>'}).join("")+'</ol>'}
 // Meeting Plan (only when the Bandmaster made that Sunday's music visible): wh "b" before / "a" after the service, b = a band item
 function mpHtml(L){return '<ol class="mp">'+L.map(r=>'<li'+(r.b?' class="band"':'')+'>'+(r.wh==="b"?'<span class="mpwh">Before the service</span>':r.wh==="a"?'<span class="mpwh">After the service</span>':'')
@@ -407,19 +413,32 @@ function offOf(s){return (D.off||{})[s]||null}
 function cardHtml(m,i,full){const s=D.sessions[i],k=kind(s),M=D.music||{},off=offOf(s);
   let h='<article class="dc'+(off?' off':'')+'" data-s="'+s+'"><div class="dh"><span class="dd">'+fmt(s,true)+'</span>'+(off?'':'<span class="dk">'+kindLabel(s)+'</span>')+evHtml(s)+'</div>'
    +(off?'<div class="offst">'+esc(off.l)+(off.n?'<small>'+esc(off.n)+'</small>':'')+'</div>':'')+statusHtml(m,i)+(off?'':pairHtml(m,i));
-  if(full&&!off){if(k==="wed"){const w=(M.weds||[]).find(x=>x.d===s),reh=(w&&w.reh)||[],dv=reh.find(r=>r.devo);
-      if(dv)h+='<div class="who"><b>Devotions:</b> '+esc(dv.i||"Not set yet")+'</div>';
-      h+='<div class="sec">Music</div>'+musicHtml(reh.filter(r=>!r.devo))}
-    else{const w=(M.suns||[]).find(x=>x.d===s);h+='<div class="sec">Music</div>'+musicHtml((w&&w.list)||[])+planHtml(s,w)+wordsHtml(s,w)}}
+  if(full&&!off)h+=fullMusicHtml(s,M);
   // My dates: the Sunday's music, Meeting Plan and Band Message Words, each closed until tapped (only when the Bandmaster made them visible)
   if(!full&&!off&&k==="sun"){const w=(M.suns||[]).find(x=>x.d===s);if(w&&(w.list||[]).length)h+=fold("mus-"+s,"Music",musicHtml(w.list));h+=planHtml(s,w)+wordsHtml(s,w)}
-  return h+awayHtml(m,i)+visHtml(i)+'</article>'}
+  return h+awayHtml(m,i)+visHtml(s)+'</article>'}
 // a section that opens and closes; stays as the member left it until the app is closed (never saved)
 const openFolds=new Set();
 function fold(k,title,body){return '<details class="fold" data-fold="'+esc(k)+'"'+(openFolds.has(k)?' open':'')+'><summary>'+esc(title)+'</summary><div class="fb">'+body+'</div></details>'}
 document.addEventListener("toggle",e=>{const d=e.target;if(d&&d.dataset&&d.dataset.fold){if(d.open)openFolds.add(d.dataset.fold);else openFolds.delete(d.dataset.fold)}},true);
 function wordsHtml(s,w){return w&&w.w?fold("bmw-"+s,"Band Message Words",'<div class="bmw">'+esc(w.w)+'</div>'):""}
-function visHtml(i){const v=(D.visitors||{})[D.sessions[i]]||[];
+// This week's music for a date (M = D.music, or D.past for a past date): the practice list and devotions,
+// or the Sunday's music, Meeting Plan and Band Message Words
+function fullMusicHtml(s,M,none,past){
+  if(kind(s)==="wed"){const w=(M.weds||[]).find(x=>x.d===s),reh=(w&&w.reh)||[],dv=reh.find(r=>r.devo),sun=P(s);sun.setDate(sun.getDate()+4);
+    return (dv?'<div class="who"><b>Devotions:</b> '+esc(dv.i||"Not set yet")+'</div>':'')+'<div class="sec">Music</div>'+musicHtml(reh.filter(r=>!r.devo),none,past?iso(sun):null)}
+  const w=(M.suns||[]).find(x=>x.d===s);return '<div class="sec">Music</div>'+musicHtml((w&&w.list)||[],none)+planHtml(s,w)+wordsHtml(s,w)}
+// A past band date (D.past, the last 8 weeks), picked in the calendar: shown like This week, but read-only
+const PST={in:"You were In",away:"You were away",usual:"Not usually on "};
+function pastCardHtml(m,s){const PD=D.past||{},j=(PD.sessions||[]).indexOf(s),off=offOf(s),c=(m.pcells||[])[j];
+  const st=["x","p"].includes(c)?"away":c==="s"?"usual":"in",away=["x","p","s"].includes(c)?["You"]:[];
+  D.members.forEach(x=>{if(x.id!==m.id&&!x.test&&["x","p","s"].includes((x.pcells||[])[j]))away.push(shortName(x.name))});
+  return '<article class="dc past" data-s="'+s+'"><div class="dh"><span class="dd">'+fmt(s,true)+'</span>'+(off?'':'<span class="dk">'+kindLabel(s)+'</span>')+evHtml(s)+'<span class="ptag">Past</span></div>'
+   +(off?'<div class="offst">'+esc(off.l)+(off.n?'<small>'+esc(off.n)+'</small>':'')+'</div>'
+     :'<div class="st '+st+'">'+ICON[st]+'<span>'+esc(PST[st]+(st==="usual"?(kind(s)==="sun"?"Sundays":"Wednesdays"):""))+'</span></div>'+fullMusicHtml(s,PD,"No music shown for this date",true)
+      +'<div class="who"><b>Away:</b> '+(away.length?esc(away.join(", ")):"Nobody")+'</div>')
+   +visHtml(s)+'</article>'}
+function visHtml(s){const v=(D.visitors||{})[s]||[];
   return v.length?'<div class="vis"><div class="sec">Visiting players</div><ul>'+v.map(x=>'<li><b>'+esc(x.n)+'</b>'+(x.p?' <span class="muted">'+esc(x.p)+'</span>':'')+'</li>').join("")+'</ul></div>':''}
 
 // ----- views -----
@@ -448,21 +467,28 @@ function devoGo(s){const i=D.sessions.indexOf(s);if(i<0)return;dview="list";
   const k=upcoming().indexOf(i);if(k>=shown)shown=Math.ceil((k+1)/10)*10;renderDates();
   const c=document.querySelector('#myarea article[data-s="'+s+'"]');if(!c)return;c.scrollIntoView({behavior:"smooth",block:"center"});
   c.classList.add("hl");setTimeout(()=>c.classList.remove("hl"),3500)}
-function calHtml(m,up){if(!up.length)return '<p class="muted">No band dates coming up.</p>';
-  const months=[...new Set(up.map(i=>D.sessions[i].slice(0,7)))];
-  if(!calM||!months.includes(calM))calM=months[0];
-  const inM=up.filter(i=>D.sessions[i].startsWith(calM));if(calSel==null||!inM.includes(calSel))calSel=inM[0];
+// past band dates the calendar can show (D.past, the last 8 weeks), and its months, oldest first
+function pastDates(up){const u=new Set(up.map(i=>D.sessions[i]));return ((D.past||{}).sessions||[]).filter(s=>!u.has(s))}
+function calMonths(up){return [...new Set(pastDates(up).concat(up.map(i=>D.sessions[i])).map(s=>s.slice(0,7)))].sort()}
+function calHtml(m,up){const past=pastDates(up),pastSet=new Set(past);if(!up.length&&!past.length)return '<p class="muted">No band dates coming up.</p>';
+  const months=calMonths(up);
+  // opens on the month of the next band date; a month with only past dates opens on its latest one
+  if(!calM||!months.includes(calM))calM=up.length?D.sessions[up[0]].slice(0,7):months[months.length-1];
+  const inM=up.filter(i=>D.sessions[i].startsWith(calM)),pM=past.filter(s=>s.startsWith(calM));
+  if(calPast&&!pM.includes(calPast))calPast=null;
+  if(calPast)calSel=null;else if(calSel==null||!inM.includes(calSel)){calSel=inM.length?inM[0]:null;if(calSel==null)calPast=pM[pM.length-1]||null}
   const [y,mo]=calM.split("-").map(Number),first=new Date(y,mo-1,1),days=new Date(y,mo,0).getDate(),lead=(first.getDay()+6)%7;
   const byIso={};up.forEach(i=>byIso[D.sessions[i]]=i);
   let g='<span class="dow">M</span><span class="dow">T</span><span class="dow">W</span><span class="dow">T</span><span class="dow">F</span><span class="dow">S</span><span class="dow">S</span>';
   for(let k=0;k<lead;k++)g+='<span class="d"></span>';
   for(let d=1;d<=days;d++){const s=calM+"-"+String(d).padStart(2,"0"),i=byIso[s];
-    if(i==null)g+='<span class="d">'+d+'</span>';
+    if(i==null&&pastSet.has(s)){const off=offOf(s);g+='<button type="button" class="d past'+(off?' off':'')+(s===calPast?' sel':'')+'" data-pday="'+s+'" aria-label="'+esc(fmtLong(s))+', '+esc(off?off.l:"past date")+'">'+d+(off?'<small aria-hidden="true">No band</small>':'')+'</button>'}
+    else if(i==null)g+='<span class="d">'+d+'</span>';
     else{const e=eff(m,i),off=offOf(s);g+='<button type="button" class="d '+e.st+(off?' off':'')+(i===calSel?' sel':'')+'" data-day="'+i+'" aria-label="'+esc(fmtLong(s))+', '+esc(off?off.l:ST[e.st][0])+'">'+d+(off?'<small aria-hidden="true">No band</small>':'')+'</button>'}}
   const pi=months.indexOf(calM);
   return '<div class="cal"><div class="ch"><button type="button" class="ib" data-cm="-1" aria-label="Previous month"'+(pi<=0?' disabled':'')+'>‹</button><b>'+MONL[mo-1]+' '+y+'</b><button type="button" class="ib" data-cm="1" aria-label="Next month"'+(pi>=months.length-1?' disabled':'')+'>›</button></div>'
-   +'<div class="grid7">'+g+'</div><div class="leg"><span><i style="background:var(--ok-soft);border:1px solid var(--ok)"></i>In</span><span><i style="background:var(--bad)"></i>Away</span><span><i style="border:2px dashed var(--wait)"></i>Sent</span>'+(inM.some(i=>offOf(D.sessions[i]))?'<span><i style="background:var(--off);border:2px dashed var(--off-line)"></i>No band</span>':'')+'</div></div>'
-   +(calSel!=null?cardHtml(m,calSel,false):'')}
+   +'<div class="grid7">'+g+'</div><div class="leg"><span><i style="background:var(--ok-soft);border:1px solid var(--ok)"></i>In</span><span><i style="background:var(--bad)"></i>Away</span><span><i style="border:2px dashed var(--wait)"></i>Sent</span>'+(pM.length?'<span><i style="background:var(--off);border:2px solid var(--line)"></i>Past</span>':'')+(inM.some(i=>offOf(D.sessions[i]))?'<span><i style="background:var(--off);border:2px dashed var(--off-line)"></i>No band</span>':'')+'</div></div>'
+   +(calPast?pastCardHtml(m,calPast):calSel!=null?cardHtml(m,calSel,false):'')}
 // Every note asks for Noted (ack only adds one reminder), and can offer answers to tap (rs.k "one" or "many") or take a written reply (rs.k "text").
 // Sending a reply also counts as Noted. A member only ever sees their own reply (D.myReplies, or the one just sent).
 const rsel={};   // replies being chosen or typed, by note id, kept while the app is open so a refresh doesn't lose them
@@ -521,7 +547,7 @@ function renderAll(){renderTabs();renderNotes();renderWeek();renderDates();rende
 function setTab(t){tab=t;renderTabs();window.scrollTo(0,0)}
 let hiddenAt=0;
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){hiddenAt=Date.now();return}
-  if(hiddenAt&&Date.now()-hiddenAt>300000){dview="list";shown=10;calM=null;calSel=null;renderDates();setTab("week")}hiddenAt=0});
+  if(hiddenAt&&Date.now()-hiddenAt>300000){dview="list";shown=10;calM=null;calSel=null;calPast=null;renderDates();setTab("week")}hiddenAt=0});
 
 // ----- sending (one confirm, 5 second Undo, then off to the Bandmaster) -----
 const UNDO_MS=5000;
@@ -706,8 +732,9 @@ document.addEventListener("click",e=>{
   const rb=t.closest("button[data-rec]");if(rb){const r=recs[+rb.dataset.rec];if(r)recSheet(r);return}
   const nb=t.closest("button[data-noted]");if(nb){const n=(D.notes||[]).find(x=>x.id===nb.dataset.noted);if(!n)return;markNoted(n);return}
   const vb=t.closest("button[data-view]");if(vb){dview=vb.dataset.view;renderDates();return}
-  const cm=t.closest("button[data-cm]");if(cm){const up=upcoming(),months=[...new Set(up.map(i=>D.sessions[i].slice(0,7)))];const k=months.indexOf(calM)+(+cm.dataset.cm);if(months[k]){calM=months[k];calSel=null}renderDates();return}
-  const dy=t.closest("button[data-day]");if(dy){calSel=+dy.dataset.day;renderDates();return}
+  const cm=t.closest("button[data-cm]");if(cm){const months=calMonths(upcoming());const k=months.indexOf(calM)+(+cm.dataset.cm);if(months[k]){calM=months[k];calSel=null;calPast=null}renderDates();return}
+  const dy=t.closest("button[data-day]");if(dy){calSel=+dy.dataset.day;calPast=null;renderDates();return}
+  const pd=t.closest("button[data-pday]");if(pd){calPast=pd.dataset.pday;calSel=null;renderDates();return}
   if(t.closest("#moreBtn")){shown+=10;renderDates();return}
   const dg=t.closest("[data-devogo]");if(dg){devoGo(dg.dataset.devogo);return}
   if(t.closest("#rangeBtn")){rangeSheet();return}
@@ -773,7 +800,7 @@ window.__bandRerender=function(){setTop();if(!D.members.some(m=>m.id===who)){who
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="4.0";
+window.__bandAppVer="4.2";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
