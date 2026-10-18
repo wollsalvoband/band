@@ -138,6 +138,13 @@ ol.mus{margin:0;padding-left:1.4em;display:grid;gap:8px}
 .mrow .tag{color:var(--brass);font-weight:700;font-size:.85rem}
 .recb{appearance:none;flex:none;display:inline-flex;align-items:center;gap:5px;min-height:46px;padding:0 14px;border-radius:999px;border:2px solid var(--brass);background:var(--surface);color:var(--brass);font:700 .9rem var(--f-body);cursor:pointer}
 .recb svg{width:18px;height:18px}
+/* Meeting Plan: the whole order of service, the band's items in gold */
+ol.mp{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+ol.mp li{padding:10px 12px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+ol.mp li.band{background:var(--brass-soft);border-left:6px solid var(--brass);font-weight:700}
+ol.mp .mpwh{display:block;font-weight:400;font-size:.85rem;color:var(--muted)}
+ol.mp .mpw{display:block;font-weight:400;color:var(--muted)}
+ol.mp .mpd{font-weight:400;margin-top:3px;white-space:pre-line}
 /* my dates */
 .dhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .seg{display:inline-grid;grid-template-columns:1fr 1fr;border:2px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
@@ -392,6 +399,10 @@ function musicHtml(list){if(!list.length)return '<p class="muted">Not set yet</p
   return '<ol class="mus">'+list.map(r=>{let btn="";if(r.l){btn='<button type="button" class="recb" data-rec="'+recs.length+'" aria-label="Listen to '+esc(r.t)+'">'+ICON.play+'Listen</button>';recs.push(r)}
     const tag=r.cat?r.cat:r.po?r.po+" this Sunday":"";
     return '<li><div class="mrow"><div><b>'+esc(r.t)+'</b>'+(tag?' <span class="tag">'+esc(tag)+'</span>':'')+(r.i?'<span class="mi">'+esc(r.i)+'</span>':'')+'</div>'+btn+'</div></li>'}).join("")+'</ol>'}
+// Meeting Plan (only when the Bandmaster made that Sunday's music visible): wh "b" before / "a" after the service, b = a band item
+function mpHtml(L){return '<ol class="mp">'+L.map(r=>'<li'+(r.b?' class="band"':'')+'>'+(r.wh==="b"?'<span class="mpwh">Before the service</span>':r.wh==="a"?'<span class="mpwh">After the service</span>':'')
+  +esc(r.t)+(r.w?'<span class="mpw">'+esc(r.w)+'</span>':'')+(r.d?'<div class="mpd">'+esc(r.d)+'</div>':'')+(r.c?'<div class="mpd">'+esc(r.c)+'</div>':'')+'</li>').join("")+'</ol>'}
+function planHtml(s,w){return w&&(w.mp||[]).length?fold("mp-"+s,"Meeting Plan",mpHtml(w.mp)):""}
 function offOf(s){return (D.off||{})[s]||null}
 function cardHtml(m,i,full){const s=D.sessions[i],k=kind(s),M=D.music||{},off=offOf(s);
   let h='<article class="dc'+(off?' off':'')+'" data-s="'+s+'"><div class="dh"><span class="dd">'+fmt(s,true)+'</span>'+(off?'':'<span class="dk">'+kindLabel(s)+'</span>')+evHtml(s)+'</div>'
@@ -399,9 +410,9 @@ function cardHtml(m,i,full){const s=D.sessions[i],k=kind(s),M=D.music||{},off=of
   if(full&&!off){if(k==="wed"){const w=(M.weds||[]).find(x=>x.d===s),reh=(w&&w.reh)||[],dv=reh.find(r=>r.devo);
       if(dv)h+='<div class="who"><b>Devotions:</b> '+esc(dv.i||"Not set yet")+'</div>';
       h+='<div class="sec">Music</div>'+musicHtml(reh.filter(r=>!r.devo))}
-    else{const w=(M.suns||[]).find(x=>x.d===s);h+='<div class="sec">Music</div>'+musicHtml((w&&w.list)||[])+wordsHtml(s,w)}}
-  // My dates: the Sunday's music and Band Message Words, each closed until tapped (only when the Bandmaster made them visible)
-  if(!full&&!off&&k==="sun"){const w=(M.suns||[]).find(x=>x.d===s);if(w&&(w.list||[]).length)h+=fold("mus-"+s,"Music",musicHtml(w.list));h+=wordsHtml(s,w)}
+    else{const w=(M.suns||[]).find(x=>x.d===s);h+='<div class="sec">Music</div>'+musicHtml((w&&w.list)||[])+planHtml(s,w)+wordsHtml(s,w)}}
+  // My dates: the Sunday's music, Meeting Plan and Band Message Words, each closed until tapped (only when the Bandmaster made them visible)
+  if(!full&&!off&&k==="sun"){const w=(M.suns||[]).find(x=>x.d===s);if(w&&(w.list||[]).length)h+=fold("mus-"+s,"Music",musicHtml(w.list));h+=planHtml(s,w)+wordsHtml(s,w)}
   return h+awayHtml(m,i)+visHtml(i)+'</article>'}
 // a section that opens and closes; stays as the member left it until the app is closed (never saved)
 const openFolds=new Set();
@@ -762,7 +773,7 @@ window.__bandRerender=function(){setTop();if(!D.members.some(m=>m.id===who)){who
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="3.9";
+window.__bandAppVer="4.0";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
