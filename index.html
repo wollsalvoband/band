@@ -68,6 +68,7 @@ details.fold summary::-webkit-details-marker{display:none}
 details.fold summary::before{content:"\25B6";color:var(--brass);font-size:.85rem}
 details.fold[open] summary::before{content:"\25BC"}
 details.fold .fb{padding:0 14px 14px}
+details.fold .upd{display:block;font-weight:400;font-size:.92rem;color:var(--muted)}
 details.fold .bmw{white-space:pre-wrap;overflow-wrap:anywhere;font-size:1.05rem}
 .brand b#hiTop{font-size:21px}
 .dvban{appearance:none;width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;background:var(--brass-soft);border:2px solid var(--brass);border-radius:16px;padding:14px;font:800 1.05rem var(--f-body);color:var(--ink);cursor:pointer;min-height:56px}
@@ -92,6 +93,7 @@ article.dc.hl{outline:4px solid var(--brass);outline-offset:2px}
 .msg.read .from{color:var(--muted)}
 .msg .nt{font-size:1.05rem;white-space:pre-wrap;overflow-wrap:anywhere}
 .msg .nt a{color:var(--navy)}
+.msg .nt .fpp{font-size:1.2rem}
 .more{font-size:.92rem;color:var(--muted)}
 /* date card */
 .dc{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:12px}
@@ -138,6 +140,24 @@ ol.mus{margin:0;padding-left:1.4em;display:grid;gap:8px}
 .mrow .tag{color:var(--brass);font-weight:700;font-size:.85rem}
 .recb{appearance:none;flex:none;display:inline-flex;align-items:center;gap:5px;min-height:46px;padding:0 14px;border-radius:999px;border:2px solid var(--brass);background:var(--surface);color:var(--brass);font:700 .9rem var(--f-body);cursor:pointer}
 .recb svg{width:18px;height:18px}
+/* View music (v4.4): the piece's buttons sit under its title, so long titles keep the full width */
+ol.mus .mrow{display:grid;gap:8px;justify-content:stretch}
+.mbtns{display:flex;gap:8px;flex-wrap:wrap}
+.musb{appearance:none;flex:none;display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:0 18px;border-radius:999px;border:2px solid var(--brass);background:var(--brass);color:var(--on-brass);font:700 .95rem var(--f-body);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.musb svg{width:18px;height:18px}
+ol.mp li.band .musb{margin-top:8px}
+/* the music, full screen: the piece and the player's part at the top, one big Close */
+.mv{position:fixed;inset:0;z-index:30;background:var(--surface);display:flex;flex-direction:column}
+.mvh{display:flex;align-items:flex-start;gap:10px;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;border-bottom:1px solid var(--line)}
+.mvh>div{flex:1;min-width:0}
+.mvh b{display:block;font:800 1.2rem/1.2 var(--f-body);overflow-wrap:anywhere}
+.mvh span{display:block;color:var(--muted)}
+.mvh .yp{color:var(--ok);font-weight:700}
+.mvb{flex:1;overflow:auto;background:#fff;padding:10px;-webkit-overflow-scrolling:touch}
+.mvb img{display:block;width:100%;height:auto}
+.mvb .mvm{color:#36415c;text-align:center;padding:40px 10px;font-weight:700}
+.mvb .mvm.err{color:#a8231b}
+.mvf{padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);color:var(--muted);text-align:center;font-size:.9rem}
 /* Meeting Plan: the whole order of service, the band's items in gold */
 ol.mp{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
 ol.mp li{padding:10px 12px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
@@ -271,6 +291,7 @@ label.f{display:grid;gap:6px;font-weight:700}
 </nav>
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="pick" class="pick" hidden><div class="pickcard"><h1><small>Wollongong Salvos</small>Who are you?</h1><p class="muted">Choose your name once. This phone will remember it.</p><label class="f">Your name<select id="who"><option value="">Choose your name</option></select></label><button class="btn send" id="pickGo" disabled>Continue</button></div></div>
+<div id="mv" class="mv" hidden role="dialog" aria-modal="true" aria-labelledby="mvT"><div class="mvh"><div><b id="mvT"></b><span id="mvS"></span><span class="yp" id="mvP"></span></div><button type="button" class="btn navy" id="mvClose">Close</button></div><div class="mvb" id="mvB"></div><div class="mvf">Spread two fingers to make it bigger. Turn your phone sideways for larger music.</div></div>
 <div id="sheet" class="sheet" hidden><div class="inner" id="sheetInner" role="dialog" aria-modal="true"></div></div>
 
 <style>
@@ -336,7 +357,8 @@ const ICON={
   away:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   sent:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-2.5-6.5z"/></svg>',
   usual:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg>',
-  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>'
+  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>',
+  note:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>'
 };
 
 // ----- per-phone state -----
@@ -400,34 +422,50 @@ function evHtml(s){const ev=evOn(s);return ev.length?'<span class="ev">★ '+esc
 
 // ----- music -----
 let recs=[];
-// on a past date, poSun is the Sunday a play-out was planned for, so its label names the date
-function musicHtml(list,none,poSun){if(!list.length)return '<p class="muted">'+(none||"Not set yet")+'</p>';
-  return '<ol class="mus">'+list.map(r=>{let btn="";if(r.l){btn='<button type="button" class="recb" data-rec="'+recs.length+'" aria-label="Listen to '+esc(r.t)+'">'+ICON.play+'Listen</button>';recs.push(r)}
+// View music: a piece's p is its music picture ID. The player's part on a date is the part the Bandmaster nominated for a
+// flexible player (D.alloc), else their own part. D.pics lists the parts with a picture, so a player only gets a View
+// button for their own part, and api=music only sends that part. Only in the band app (the Apps Script sends the picture).
+const partOn=(m,s)=>((D.alloc||{})[s]||{})[m.id]||m.part||"";
+function viewBtn(p,s,t,i){const m=me();if(!p||!m||!window.__bandApi||!((D.pics||{})[p]||[]).includes(partOn(m,s)))return "";
+  return '<button type="button" class="musb" data-mv="'+esc(p)+'" data-s="'+s+'" data-t="'+esc(t)+'" data-i="'+esc(i||"")+'" aria-label="View your music for '+esc(t)+'">'+ICON.note+'View</button>'}
+// on a past date, poSun is the Sunday a play-out was planned for, so its label names the date. s = the date (for the part)
+function musicHtml(list,none,poSun,s){if(!list.length)return '<p class="muted">'+(none||"Not set yet")+'</p>';
+  return '<ol class="mus">'+list.map(r=>{let btn=viewBtn(r.p,s,r.t,r.i);if(r.l){btn+='<button type="button" class="recb" data-rec="'+recs.length+'" aria-label="Listen to '+esc(r.t)+'">'+ICON.play+'Listen</button>';recs.push(r)}
     const tag=r.cat?r.cat:r.po?r.po+(poSun?" "+fmt(poSun,true):" this Sunday"):"";
-    return '<li><div class="mrow"><div><b>'+esc(r.t)+'</b>'+(tag?' <span class="tag">'+esc(tag)+'</span>':'')+(r.i?'<span class="mi">'+esc(r.i)+'</span>':'')+'</div>'+btn+'</div></li>'}).join("")+'</ol>'}
-// Meeting Plan (only when the Bandmaster made that Sunday's music visible): wh "b" before / "a" after the service, b = a band item
-function mpHtml(L){return '<ol class="mp">'+L.map(r=>'<li'+(r.b?' class="band"':'')+'>'+(r.wh==="b"?'<span class="mpwh">Before the service</span>':r.wh==="a"?'<span class="mpwh">After the service</span>':'')
-  +esc(r.t)+(r.w?'<span class="mpw">'+esc(r.w)+'</span>':'')+(r.d?'<div class="mpd">'+esc(r.d)+'</div>':'')+(r.c?'<div class="mpd">'+esc(r.c)+'</div>':'')+'</li>').join("")+'</ol>'}
-function planHtml(s,w){return w&&(w.mp||[]).length?fold("mp-"+s,"Meeting Plan",mpHtml(w.mp)):""}
+    return '<li><div class="mrow"><div><b>'+esc(r.t)+'</b>'+(tag?' <span class="tag">'+esc(tag)+'</span>':'')+(r.i?'<span class="mi">'+esc(r.i)+'</span>':'')+'</div>'+(btn?'<div class="mbtns">'+btn+'</div>':'')+'</div></li>'}).join("")+'</ol>'}
+// Meeting Plan (only when the Bandmaster made that Sunday's music visible): wh "b" before / "a" after the service, b = a band item,
+// p = the picture of the Sunday piece it is (its View button names the piece from the Sunday list)
+function mpHtml(L,s,list){return '<ol class="mp">'+L.map(r=>{const pc=r.p&&(list||[]).find(x=>x.p===r.p);
+  return '<li'+(r.b?' class="band"':'')+'>'+(r.wh==="b"?'<span class="mpwh">Before the service</span>':r.wh==="a"?'<span class="mpwh">After the service</span>':'')
+  +esc(r.t)+(r.w?'<span class="mpw">'+esc(r.w)+'</span>':'')+(r.d?'<div class="mpd">'+esc(r.d)+'</div>':'')+(r.c?'<div class="mpd">'+esc(r.c)+'</div>':'')
+  +(r.b?viewBtn(r.p,s,pc?pc.t:r.t,pc?pc.i:""):"")+'</li>'}).join("")+'</ol>'}
+// "Tue 20 Oct 3:15pm" from an ISO time, "" if it isn't one
+function atText(t){const d=new Date(t);if(!t||isNaN(d))return "";const h=d.getHours();
+  return fmt(iso(d),true)+" "+(h%12||12)+":"+String(d.getMinutes()).padStart(2,"0")+(h<12?"am":"pm")}
+// mu = when the plan was last updated, on its own line under the heading
+function planHtml(s,w){return w&&(w.mp||[]).length?fold("mp-"+s,"Meeting Plan",mpHtml(w.mp,s,w.list),atText(w.mu)?"Updated "+atText(w.mu):""):""}
+function devoWho(s,M){const w=(M.weds||[]).find(x=>x.d===s),dv=w&&(w.reh||[]).find(r=>r.devo);return dv?dv.i:((D.devo||{})[s]||{}).p||""}
 function offOf(s){return (D.off||{})[s]||null}
 function cardHtml(m,i,full){const s=D.sessions[i],k=kind(s),M=D.music||{},off=offOf(s);
   let h='<article class="dc'+(off?' off':'')+'" data-s="'+s+'"><div class="dh"><span class="dd">'+fmt(s,true)+'</span>'+(off?'':'<span class="dk">'+kindLabel(s)+'</span>')+evHtml(s)+'</div>'
    +(off?'<div class="offst">'+esc(off.l)+(off.n?'<small>'+esc(off.n)+'</small>':'')+'</div>':'')+statusHtml(m,i)+(off?'':pairHtml(m,i));
   if(full&&!off)h+=fullMusicHtml(s,M);
   // My dates: the Sunday's music, Meeting Plan and Band Message Words, each closed until tapped (only when the Bandmaster made them visible)
-  if(!full&&!off&&k==="sun"){const w=(M.suns||[]).find(x=>x.d===s);if(w&&(w.list||[]).length)h+=fold("mus-"+s,"Music",musicHtml(w.list));h+=planHtml(s,w)+wordsHtml(s,w)}
+  // My dates: who's on devotions, the same line This week shows (its two Wednesdays from D.music, later ones from the roster)
+  if(!full&&!off&&k==="wed")h+='<div class="who"><b>Devotions:</b> '+esc(devoWho(s,M)||"Not set yet")+'</div>';
+  if(!full&&!off&&k==="sun"){const w=(M.suns||[]).find(x=>x.d===s);if(w&&(w.list||[]).length)h+=fold("mus-"+s,"Music",musicHtml(w.list,"",null,s));h+=planHtml(s,w)+wordsHtml(s,w)}
   return h+awayHtml(m,i)+visHtml(s)+'</article>'}
 // a section that opens and closes; stays as the member left it until the app is closed (never saved)
 const openFolds=new Set();
-function fold(k,title,body){return '<details class="fold" data-fold="'+esc(k)+'"'+(openFolds.has(k)?' open':'')+'><summary>'+esc(title)+'</summary><div class="fb">'+body+'</div></details>'}
+function fold(k,title,body,sub){return '<details class="fold" data-fold="'+esc(k)+'"'+(openFolds.has(k)?' open':'')+'><summary>'+(sub?'<span>'+esc(title)+'<span class="upd">'+esc(sub)+'</span></span>':esc(title))+'</summary><div class="fb">'+body+'</div></details>'}
 document.addEventListener("toggle",e=>{const d=e.target;if(d&&d.dataset&&d.dataset.fold){if(d.open)openFolds.add(d.dataset.fold);else openFolds.delete(d.dataset.fold)}},true);
 function wordsHtml(s,w){return w&&w.w?fold("bmw-"+s,"Band Message Words",'<div class="bmw">'+esc(w.w)+'</div>'):""}
 // This week's music for a date (M = D.music, or D.past for a past date): the practice list and devotions,
 // or the Sunday's music, Meeting Plan and Band Message Words
 function fullMusicHtml(s,M,none,past){
   if(kind(s)==="wed"){const w=(M.weds||[]).find(x=>x.d===s),reh=(w&&w.reh)||[],dv=reh.find(r=>r.devo),sun=P(s);sun.setDate(sun.getDate()+4);
-    return (dv?'<div class="who"><b>Devotions:</b> '+esc(dv.i||"Not set yet")+'</div>':'')+'<div class="sec">Music</div>'+musicHtml(reh.filter(r=>!r.devo),none,past?iso(sun):null)}
-  const w=(M.suns||[]).find(x=>x.d===s);return '<div class="sec">Music</div>'+musicHtml((w&&w.list)||[],none)+planHtml(s,w)+wordsHtml(s,w)}
+    return (dv?'<div class="who"><b>Devotions:</b> '+esc(dv.i||"Not set yet")+'</div>':'')+'<div class="sec">Music</div>'+musicHtml(reh.filter(r=>!r.devo),none,past?iso(sun):null,s)}
+  const w=(M.suns||[]).find(x=>x.d===s);return '<div class="sec">Music</div>'+musicHtml((w&&w.list)||[],none,null,s)+planHtml(s,w)+wordsHtml(s,w)}
 // A past band date (D.past, the last 8 weeks), picked in the calendar: shown like This week, but read-only
 const PST={in:"You were In",away:"You were away",usual:"Not usually on "};
 function pastCardHtml(m,s){const PD=D.past||{},j=(PD.sessions||[]).indexOf(s),off=offOf(s),c=(m.pcells||[])[j];
@@ -501,7 +539,7 @@ function replyForm(n){const sel=rsel[n.id]||(rsel[n.id]={c:[],t:""}),k=n.rs.k;
      :'<div class="ropts">'+(n.rs.o||[]).map((o,i)=>'<button type="button" class="ropt" data-ropt="'+i+'" aria-pressed="'+sel.c.includes(i)+'">'+esc(o)+'</button>').join("")+'</div>')
    +'<p class="sub">Only the Bandmaster sees your reply.</p><button type="button" class="btn navy" data-rsend="'+esc(n.id)+'"'+(ready?'':' disabled')+'>Send reply</button></div>'}
 function noteHtml(n,btn){const r=n.rs?myReply(n):null;
-  let h='<div class="msg'+(btn?'':' read')+'"><span class="from">'+(n.devo?'Just for you · Devotions':n.to?'Just for you':btn?'From the Bandmaster':'Read')+(n.date?' · '+esc(fmt(n.date,true)):'')+'</span><div class="nt">'+linky(n.text)+'</div>';
+  let h='<div class="msg'+(btn?'':' read')+'"><span class="from">'+(n.devo?'Just for you · Devotions':n.fp&&btn?'Just for you · Your part':n.to?'Just for you':btn?'From the Bandmaster':'Read')+(n.date?' · '+esc(fmt(n.date,true)):'')+'</span><div class="nt">'+(n.fp?esc(n.fp.l)+'<br><b class="fpp">'+esc(n.fp.p)+'</b>':linky(n.text))+'</div>';
   if(r)h+='<div class="mine"><b>Your reply</b> · '+esc(whenText(new Date(r.at)))+'<div>'+esc(replyText(n,r))+'</div><small>Sent for Bandmaster</small></div>';
   if(btn){if(n.rs&&!n.cl&&!r)h+=replyForm(n);
     else h+=(n.devo&&n.ack&&!n.cl?'<div class="ask">Please tap Noted so the Devotions Coordinator knows you\'ve seen it.</div>':'')+'<button type="button" class="btn brass" data-noted="'+esc(n.id)+'">Noted</button>'}
@@ -527,7 +565,7 @@ function linky(t){return String(t||"").split(" ").map(w=>/^https?:/.test(w)?'<a 
 function serverNoted(){const m=me();if(!m)return {};const o={},nb=(D.notedBy||{})[m.id]||{};for(const k in nb)o[k]=nb[k]&&nb[k].v;return Object.assign(o,window.__notedFor||{})}
 // a note with "to" (the devotions reminder) is only for that member
 // the day's automatic reminders (No Band, devotions) always show; the Bandmaster's notes only from notesFrom on
-function myNotes(){const m=me(),notesFrom=notesFromFn();return (D.notes||[]).filter(n=>(!n.to||(m&&m.id===n.to))&&(!n.ids||(m&&n.ids.includes(m.id)))&&(!notesFrom||n.to||/^(off|devo)-/.test(n.id)||String(n.v||"")>=notesFrom))}
+function myNotes(){const m=me(),notesFrom=notesFromFn();return (D.notes||[]).filter(n=>(!n.to||(m&&m.id===n.to))&&(!n.ids||(m&&n.ids.includes(m.id)))&&(!notesFrom||n.to||/^(off|devo|fp)-/.test(n.id)||String(n.v||"")>=notesFrom))}
 function notesSplit(){const N=myNotes(),seen=store.get("band.noted",{}),srv=serverNoted();const m=me(),done=n=>!!m&&((D.ackDone||{})[n.id]||[]).includes(m.id);   // marked done by the Bandmaster
   const isNew=n=>seen[n.id]!==n.v&&srv[n.id]!==n.v&&!done(n);return {fresh:N.filter(isNew),old:N.filter(n=>!isNew(n))}}
 function flushNoted(){const g=gsr(),q=store.get("band.notedQ",[]);if(!g||typeof g.notedFromPage!=="function"||!q.length)return;
@@ -612,6 +650,23 @@ function rangeList(){const m=me(),f=$("rgF").value,t=$("rgT").value;const box=$(
     return '<li><label><input type="checkbox" data-rg="'+s+'"'+(rangeSel[s]?' checked':'')+(done?' disabled':'')+'><span class="tk"><b>'+esc(fmt(s,true))+'</b><small>'+(offOf(s)?esc(offOf(s).l):kindLabel(s))+(done?(e.st==="usual"?' · not usually on '+(kind(s)==="sun"?"Sundays":"Wednesdays"):' · already away'):'')+'</small></span></label></li>'}).join("")+'</ul>';
   updRangeBtn(ds.filter(i=>rangeSel[D.sessions[i]]&&eff(m,i).want!=="away").length)}
 function updRangeBtn(n){const b=document.querySelector("[data-rgo]");if(!b)return;b.disabled=!n;b.textContent=n?"Submit to Bandmaster for noting ("+n+" date"+(n>1?"s":"")+")":"No dates picked"}
+// the music viewer: asks the Apps Script for the player's own part (api=music) and shows it full screen
+const mvCache=new Map();let mvAt=0;
+async function viewMusic(b){const m=me();if(!m||!window.__bandApi)return;const id=b.dataset.mv,s=b.dataset.s,q=partOn(m,s),at=++mvAt;
+  const nom=((D.alloc||{})[s]||{})[m.id];
+  $("mvT").textContent=b.dataset.t;$("mvS").textContent=(b.dataset.i?b.dataset.i+" · ":"")+fmt(s,true);
+  $("mvP").textContent=q==="Bandmaster"?"The Bandmaster's part":(nom?"Your part on "+fmt(s,true)+": ":"Your part: ")+q;
+  $("mvB").innerHTML='<p class="mvm">Opening the music…</p>';$("mv").hidden=false;document.body.style.overflow="hidden";$("mvClose").focus({preventScroll:true});
+  const k=id+"|"+q;let src=mvCache.get(k);
+  try{if(!src){const r=await window.__bandApi({api:"music",m:m.id,d:s,id:id});
+      if(!r||!r.ok||!r.b64)throw new Error(r&&r.error==="none"?"none":"failed");
+      src="data:"+(/^image\/(png|jpeg)$/.test(r.mime||"")?r.mime:"image/png")+";base64,"+r.b64;mvCache.set(k,src)}
+    if(at!==mvAt||$("mv").hidden)return;
+    $("mvB").innerHTML='<img alt="Music for '+esc(b.dataset.t)+'" src="'+src+'">'}
+  catch(err){if(at!==mvAt||$("mv").hidden)return;
+    $("mvB").innerHTML='<p class="mvm err">'+(err.message==="none"?"This music isn't ready for your part yet.":"Couldn't open the music. Check you're connected to the internet, then try again.")+'</p>'}}
+function closeMusic(){mvAt++;$("mv").hidden=true;$("mvB").innerHTML="";document.body.style.overflow=""}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mv").hidden){e.stopPropagation();closeMusic()}},true);
 function recSheet(r){const url=String(r.l||"").trim();let body="";
   const yt=ytId(url);
   if(yt)body='<div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/'+yt.id+'?rel=0&playsinline=1&autoplay=1'+(yt.start?'&start='+yt.start:'')+'" title="'+esc(r.t)+'" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div><a class="btn wide" href="'+esc(url)+'" target="_blank" rel="noopener">Open in YouTube</a><p class="small muted">If the video won\'t play here, tap Open in YouTube.</p>';
@@ -730,6 +785,8 @@ document.addEventListener("click",e=>{
   const tb=t.closest("#tbar button[data-tab]");if(tb){setTab(tb.dataset.tab);return}
   const sb=t.closest("button[data-set]");if(sb){const m=me(),i=+sb.dataset.i;if(!m)return;if(eff(m,i).want===sb.dataset.set)return;confirmSheet(i,sb.dataset.set);return}
   const rb=t.closest("button[data-rec]");if(rb){const r=recs[+rb.dataset.rec];if(r)recSheet(r);return}
+  const mvb=t.closest("button[data-mv]");if(mvb){viewMusic(mvb);return}
+  if(t.closest("#mvClose")){closeMusic();return}
   const nb=t.closest("button[data-noted]");if(nb){const n=(D.notes||[]).find(x=>x.id===nb.dataset.noted);if(!n)return;markNoted(n);return}
   const vb=t.closest("button[data-view]");if(vb){dview=vb.dataset.view;renderDates();return}
   const cm=t.closest("button[data-cm]");if(cm){const months=calMonths(upcoming());const k=months.indexOf(calM)+(+cm.dataset.cm);if(months[k]){calM=months[k];calSel=null;calPast=null}renderDates();return}
@@ -800,7 +857,7 @@ window.__bandRerender=function(){setTop();if(!D.members.some(m=>m.id===who)){who
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="4.2";
+window.__bandAppVer="4.6";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
