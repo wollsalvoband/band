@@ -426,6 +426,8 @@ let recs=[];
 // flexible player (D.alloc), else their own part. D.pics lists the parts with a picture, so a player only gets a View
 // button for their own part, and api=music only sends that part. Only in the band app (the Apps Script sends the picture).
 const partOn=(m,s)=>((D.alloc||{})[s]||{})[m.id]||m.part||"";
+// the band says Flugel: only what the app shows changes, the part itself stays Flugelhorn
+const partShow=p=>/^flug[ae]l(horn)?$/i.test(p||"")?"Flugel":p;
 function viewBtn(p,s,t,i){const m=me();if(!p||!m||!window.__bandApi||!((D.pics||{})[p]||[]).includes(partOn(m,s)))return "";
   return '<button type="button" class="musb" data-mv="'+esc(p)+'" data-s="'+s+'" data-t="'+esc(t)+'" data-i="'+esc(i||"")+'" aria-label="View your music for '+esc(t)+'">'+ICON.note+'View</button>'}
 // on a past date, poSun is the Sunday a play-out was planned for, so its label names the date. s = the date (for the part)
@@ -477,7 +479,7 @@ function pastCardHtml(m,s){const PD=D.past||{},j=(PD.sessions||[]).indexOf(s),of
       +'<div class="who"><b>Away:</b> '+(away.length?esc(away.join(", ")):"Nobody")+'</div>')
    +visHtml(s)+'</article>'}
 function visHtml(s){const v=(D.visitors||{})[s]||[];
-  return v.length?'<div class="vis"><div class="sec">Visiting players</div><ul>'+v.map(x=>'<li><b>'+esc(x.n)+'</b>'+(x.p?' <span class="muted">'+esc(x.p)+'</span>':'')+'</li>').join("")+'</ul></div>':''}
+  return v.length?'<div class="vis"><div class="sec">Visiting players</div><ul>'+v.map(x=>'<li><b>'+esc(x.n)+'</b>'+(x.p?' <span class="muted">'+esc(partShow(x.p))+'</span>':'')+'</li>').join("")+'</ul></div>':''}
 
 // ----- views -----
 function renderWeek(){const m=me();recs=[];
@@ -539,7 +541,7 @@ function replyForm(n){const sel=rsel[n.id]||(rsel[n.id]={c:[],t:""}),k=n.rs.k;
      :'<div class="ropts">'+(n.rs.o||[]).map((o,i)=>'<button type="button" class="ropt" data-ropt="'+i+'" aria-pressed="'+sel.c.includes(i)+'">'+esc(o)+'</button>').join("")+'</div>')
    +'<p class="sub">Only the Bandmaster sees your reply.</p><button type="button" class="btn navy" data-rsend="'+esc(n.id)+'"'+(ready?'':' disabled')+'>Send reply</button></div>'}
 function noteHtml(n,btn){const r=n.rs?myReply(n):null;
-  let h='<div class="msg'+(btn?'':' read')+'"><span class="from">'+(n.devo?'Just for you · Devotions':n.fp&&btn?'Just for you · Your part':n.to?'Just for you':btn?'From the Bandmaster':'Read')+(n.date?' · '+esc(fmt(n.date,true)):'')+'</span><div class="nt">'+(n.fp?esc(n.fp.l)+'<br><b class="fpp">'+esc(n.fp.p)+'</b>':linky(n.text))+'</div>';
+  let h='<div class="msg'+(btn?'':' read')+'"><span class="from">'+(n.devo?'Just for you · Devotions':n.fp&&btn?'Just for you · Your part':n.to?'Just for you':btn?'From the Bandmaster':'Read')+(n.date?' · '+esc(fmt(n.date,true)):'')+'</span><div class="nt">'+(n.fp?esc(n.fp.l)+'<br><b class="fpp">'+esc(partShow(n.fp.p))+'</b>':linky(n.text))+'</div>';
   if(r)h+='<div class="mine"><b>Your reply</b> · '+esc(whenText(new Date(r.at)))+'<div>'+esc(replyText(n,r))+'</div><small>Sent for Bandmaster</small></div>';
   if(btn){if(n.rs&&!n.cl&&!r)h+=replyForm(n);
     else h+=(n.devo&&n.ack&&!n.cl?'<div class="ask">Please tap Noted so the Devotions Coordinator knows you\'ve seen it.</div>':'')+'<button type="button" class="btn brass" data-noted="'+esc(n.id)+'">Noted</button>'}
@@ -655,7 +657,7 @@ const mvCache=new Map();let mvAt=0;
 async function viewMusic(b){const m=me();if(!m||!window.__bandApi)return;const id=b.dataset.mv,s=b.dataset.s,q=partOn(m,s),at=++mvAt;
   const nom=((D.alloc||{})[s]||{})[m.id];
   $("mvT").textContent=b.dataset.t;$("mvS").textContent=(b.dataset.i?b.dataset.i+" · ":"")+fmt(s,true);
-  $("mvP").textContent=q==="Bandmaster"?"The Bandmaster's part":(nom?"Your part on "+fmt(s,true)+": ":"Your part: ")+q;
+  $("mvP").textContent=q==="Bandmaster"?"The Bandmaster's part":(nom?"Your part on "+fmt(s,true)+": ":"Your part: ")+partShow(q);
   $("mvB").innerHTML='<p class="mvm">Opening the music…</p>';$("mv").hidden=false;document.body.style.overflow="hidden";$("mvClose").focus({preventScroll:true});
   const k=id+"|"+q;let src=mvCache.get(k);
   try{if(!src){const r=await window.__bandApi({api:"music",m:m.id,d:s,id:id});
@@ -857,7 +859,7 @@ window.__bandRerender=function(){setTop();if(!D.members.some(m=>m.id===who)){who
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="4.6";
+window.__bandAppVer="4.8";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
