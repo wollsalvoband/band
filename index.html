@@ -97,7 +97,9 @@ article.dc.hl{outline:4px solid var(--brass);outline-offset:2px}
 .msg .nt .fpp{font-size:1.2rem}
 .more{font-size:.92rem;color:var(--muted)}
 /* date card */
-.dc{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:12px}
+.dc{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:12px;min-width:0}
+/* grid children shrink to the phone's width: a long word or link in a card wraps instead of widening the whole list */
+.dc>*{min-width:0}
 .dh{display:grid;gap:2px}
 .dd{font:800 1.3rem/1.15 var(--f-body)}
 .dk{color:var(--muted)}
@@ -106,7 +108,9 @@ article.dc.hl{outline:4px solid var(--brass);outline-offset:2px}
 .dc.evc{border:2px solid var(--ev)}
 .evtag{justify-self:start;font:800 .85rem/1.2 var(--f-body);letter-spacing:.04em;text-transform:uppercase;color:var(--ev);background:var(--ev-soft);padding:4px 10px;border-radius:8px}
 .evt{font:800 1.3rem/1.15 var(--f-body)}
-.evn{background:var(--ev-soft);border-radius:10px;padding:8px 12px}
+.evt,.dc .dk{overflow-wrap:anywhere}
+.evn{background:var(--ev-soft);border-radius:10px;padding:8px 12px;overflow-wrap:anywhere}
+.evn a{color:var(--navy)}
 .st{display:flex;align-items:center;gap:10px;font-weight:700;padding:10px 12px;border-radius:12px}
 .st svg{width:24px;height:24px;flex:none}
 .st small{display:block;font-weight:400;font-size:.85rem;color:var(--muted)}
@@ -481,7 +485,7 @@ function offOf(s){return (D.off||{})[s]||null}
 // buttons, and its music (This week shows it, My dates has it closed until tapped)
 function evCardHtml(m,i,full){const s=D.sessions[i],x=xOf(s)||{},L=x.list||[];
   let h='<article class="dc evc" data-s="'+s+'"><span class="evtag">★ Extra event</span><div class="dh"><span class="evt">'+esc(x.t||"Band event")+'</span><span class="dk"><b class="dd" style="font-size:1rem">'+fmt(s,true)+'</b>'+(xWhen(x)?' · '+esc(xWhen(x)):'')+(x.pl?'<br>'+esc(x.pl):'')+'</span></div>'
-   +(x.n?'<div class="evn">'+esc(x.n)+'</div>':'')+statusHtml(m,i)+pairHtml(m,i);
+   +(x.n?'<div class="evn">'+linky(x.n)+'</div>':'')+statusHtml(m,i)+pairHtml(m,i);
   if(L.length)h+=full?'<div class="sec">Music</div>'+musicHtml(L,"",null,s):fold("mus-"+s,"Music",musicHtml(L,"",null,s));
   return h+awayHtml(m,i)+visHtml(s)+'</article>'}
 function cardHtml(m,i,full){const s=D.sessions[i],k=kind(s),M=D.music||{},off=offOf(s);
@@ -606,7 +610,9 @@ document.addEventListener("click",e=>{const o=e.target.closest("[data-ropt]");if
   const sb=e.target.closest("[data-rsend]");if(sb){const n=(D.notes||[]).find(x=>x.id===sb.dataset.rsend);if(n)sendReply(n,sb)}});
 document.addEventListener("input",e=>{const t=e.target.closest(".rtext");if(!t)return;const id=t.closest("[data-rnote]").dataset.rnote,sel=rsel[id]||(rsel[id]={c:[],t:""});sel.t=t.value;
   document.querySelectorAll('[data-rnote="'+id+'"]').forEach(f=>{const x=f.querySelector(".rtext");if(x!==t)x.value=t.value;f.querySelector("[data-rsend]").disabled=!t.value.trim()})});
-function linky(t){return String(t||"").split(" ").map(w=>/^https?:/.test(w)?'<a href="'+esc(w)+'" target="_blank" rel="noopener">'+esc(w)+'</a>':esc(w)).join(" ")}
+// a note's text, escaped, with its web addresses as links (a full stop or bracket after the address isn't part of it)
+function linky(t){return esc(t).replace(/https?:\/\/(?:(?!&quot;|&#39;|&lt;|&gt;)\S)+/g,u=>{const e=/[.,;:!?)\]]+$/.exec(u),k=e?u.slice(0,e.index):u;
+  return '<a href="'+k+'" target="_blank" rel="noopener">'+k+'</a>'+(e?e[0]:"")})}
 // Noted taps are kept on this phone AND sent to the Bandmaster's record, so a note read on one device is read on all of them.
 function serverNoted(){const m=me();if(!m)return {};const o={},nb=(D.notedBy||{})[m.id]||{};for(const k in nb)o[k]=nb[k]&&nb[k].v;return Object.assign(o,window.__notedFor||{})}
 // a note with "to" (the devotions reminder) is only for that member
@@ -909,7 +915,7 @@ window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="5.2";
+window.__bandAppVer="5.3";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
