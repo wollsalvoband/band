@@ -138,6 +138,9 @@ article.dc.hl{outline:4px solid var(--brass);outline-offset:2px}
 .dvopt{appearance:none;min-height:54px;border:2px solid var(--line);border-radius:12px;padding:10px 14px;font:700 1.05rem var(--f-body);color:var(--ink);background:var(--surface);display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;cursor:pointer}
 .dvbar{position:sticky;top:0;z-index:2;margin:-20px -16px 0;padding:20px 16px 12px;background:var(--surface);border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .dvbar .btn{min-height:60px;font-size:1.15rem}
+/* v5.6: the Devotions roster's Done stays at the top while the dates scroll */
+.dvtop{position:sticky;top:0;z-index:2;margin:-20px -16px 0;padding:20px 16px 12px;background:var(--surface);border-bottom:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+.dvtop .btn{min-height:60px;min-width:120px;font-size:1.15rem}
 .dvpick{font-weight:700}
 .dvopt small{font-weight:400;color:var(--bad);font-size:.9rem}.dvopt.alt{font-weight:400;border-style:dashed}
 .dvopt[aria-pressed="true"]{border-color:var(--navy);background:color-mix(in srgb,var(--navy) 14%,var(--surface))}
@@ -159,6 +162,10 @@ ol.mus .mrow{display:grid;gap:8px;justify-content:stretch}
 .musb{appearance:none;flex:none;display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:0 18px;border-radius:999px;border:2px solid var(--brass);background:var(--brass);color:var(--on-brass);font:700 .95rem var(--f-body);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .musb svg{width:18px;height:18px}
 ol.mp li.band .musb{margin-top:8px}
+/* v5.6: Words, in big print, for any piece the Bandmaster has words for */
+.wdb{appearance:none;flex:none;display:inline-flex;align-items:center;min-height:46px;padding:0 18px;border-radius:999px;border:2px solid var(--brass);background:var(--surface);color:var(--ink);font:700 .95rem var(--f-body);cursor:pointer;-webkit-tap-highlight-color:transparent}
+ol.mp li.band .mbtns{margin-top:8px}ol.mp li.band .mbtns .musb{margin-top:0}
+.wds{font-size:1.3rem;line-height:1.5;overflow-wrap:anywhere}.wds p{margin:0 0 1em}.wds p:last-child{margin-bottom:0}
 /* the music, full screen: the piece and the player's part at the top, one big Close */
 .mv{position:fixed;inset:0;z-index:30;background:var(--surface);display:flex;flex-direction:column}
 .mvh{display:flex;align-items:flex-start;gap:10px;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;border-bottom:1px solid var(--line)}
@@ -468,8 +475,12 @@ const partOn=(m,s)=>((D.alloc||{})[s]||{})[m.id]||m.part||"";
 function viewBtn(p,s,t,i){const m=me();if(!p||!m||!window.__bandApi||!((D.pics||{})[p]||[]).includes(partOn(m,s)))return "";
   return '<button type="button" class="musb" data-mv="'+esc(p)+'" data-s="'+s+'" data-t="'+esc(t)+'" data-i="'+esc(i||"")+'" aria-label="View your music for '+esc(t)+'">'+ICON.note+'View</button>'}
 // on a past date, poSun is the Sunday a play-out was planned for, so its label names the date. s = the date (for the part)
+// Words (v5.6): wk = the key of the piece's Words in D.words, opened in big print
+function wordsBtn(wk,t){return wk&&(D.words||{})[wk]?'<button type="button" class="wdb" data-wk="'+esc(wk)+'" data-t="'+esc(t)+'" aria-label="Words of '+esc(t)+'">Words</button>':""}
+function openWords(b){const h=(D.words||{})[b.dataset.wk];if(!h)return;
+  openSheet('<div class="dvtop"><h2>'+esc(b.dataset.t)+'</h2><button type="button" class="btn navy" data-close>Done</button></div><div class="wds">'+h+'</div>',"words")}
 function musicHtml(list,none,poSun,s){if(!list.length)return '<p class="muted">'+(none||"Not set yet")+'</p>';
-  return '<ol class="mus">'+list.map(r=>{let btn=viewBtn(r.p,s,r.t,r.i);if(r.l){btn+='<button type="button" class="recb" data-rec="'+recs.length+'" aria-label="Listen to '+esc(r.t)+'">'+ICON.play+'Listen</button>';recs.push(r)}
+  return '<ol class="mus">'+list.map(r=>{let btn=wordsBtn(r.wk,r.t)+viewBtn(r.p,s,r.t,r.i);if(r.l){btn+='<button type="button" class="recb" data-rec="'+recs.length+'" aria-label="Listen to '+esc(r.t)+'">'+ICON.play+'Listen</button>';recs.push(r)}
     const tag=r.cat?r.cat:r.po?r.po+(poSun?" "+fmt(poSun,true):" this Sunday"):"";
     return '<li><div class="mrow"><div><b>'+esc(r.t)+'</b>'+(tag?' <span class="tag">'+esc(tag)+'</span>':'')+(r.i?'<span class="mi">'+esc(r.i)+'</span>':'')+'</div>'+(btn?'<div class="mbtns">'+btn+'</div>':'')+'</div></li>'}).join("")+'</ol>'}
 // Meeting Plan (only when the Bandmaster made that Sunday's music visible): wh "b" before / "a" after the service, b = a band item,
@@ -477,7 +488,8 @@ function musicHtml(list,none,poSun,s){if(!list.length)return '<p class="muted">'
 function mpHtml(L,s,list){return '<ol class="mp">'+L.map(r=>{const pc=r.p&&(list||[]).find(x=>x.p===r.p);
   return '<li'+(r.b?' class="band"':'')+'>'+(r.wh==="b"?'<span class="mpwh">Before the service</span>':r.wh==="a"?'<span class="mpwh">After the service</span>':'')
   +esc(r.t)+(r.w?'<span class="mpw">'+esc(r.w)+'</span>':'')+(r.d?'<div class="mpd">'+esc(r.d)+'</div>':'')+(r.c?'<div class="mpd">'+esc(r.c)+'</div>':'')
-  +(r.b?viewBtn(r.p,s,pc?pc.t:r.t,pc?pc.i:""):"")+'</li>'}).join("")+'</ol>'}
+  +(r.b?mpBtns(wordsBtn(r.wk,pc?pc.t:r.t)+viewBtn(r.p,s,pc?pc.t:r.t,pc?pc.i:"")):"")+'</li>'}).join("")+'</ol>'}
+const mpBtns=b=>b?'<div class="mbtns">'+b+'</div>':"";
 // "Tue 20 Oct 3:15pm" from an ISO time, "" if it isn't one
 function atText(t){const d=new Date(t);if(!t||isNaN(d))return "";const h=d.getHours();
   return fmt(iso(d),true)+" "+(h%12||12)+":"+String(d.getMinutes()).padStart(2,"0")+(h<12?"am":"pm")}
@@ -507,7 +519,7 @@ const openFolds=new Set();
 function fold(k,title,body,sub){return '<details class="fold" data-fold="'+esc(k)+'"'+(openFolds.has(k)?' open':'')+'><summary>'+(sub?'<span>'+esc(title)+'<span class="upd">'+esc(sub)+'</span></span>':esc(title))+'</summary><div class="fb">'+body+'</div></details>'}
 document.addEventListener("toggle",e=>{const d=e.target;if(d&&d.dataset&&d.dataset.fold){if(d.open)openFolds.add(d.dataset.fold);else openFolds.delete(d.dataset.fold)}},true);
 // wh = the words as HTML, already cleaned by builder/data.js to paragraphs, line breaks, bold and italic (w = plain text)
-function wordsHtml(s,w){return w&&w.wh?fold("bmw-"+s,"Band Message Words",'<div class="bmw h">'+w.wh+'</div>'):w&&w.w?fold("bmw-"+s,"Band Message Words",'<div class="bmw">'+esc(w.w)+'</div>'):""}
+function wordsHtml(s,w){if(D.words)return "";return w&&w.wh?fold("bmw-"+s,"Band Message Words",'<div class="bmw h">'+w.wh+'</div>'):w&&w.w?fold("bmw-"+s,"Band Message Words",'<div class="bmw">'+esc(w.w)+'</div>'):""}
 // This week's music for a date (M = D.music, or D.past for a past date): the practice list and devotions,
 // or the Sunday's music, Meeting Plan and Band Message Words
 function fullMusicHtml(s,M,none,past){
@@ -790,10 +802,10 @@ function dvStatus(w,c){const e=(D.devoAck||{})[w],when=t=>t?whenText(new Date(t)
   return '<span class="pill wait">Pending</span> asked '+esc(when(e.sentAt))}
 function dvHist(w){const h=((D.devoAck||{})[w]||{}).hist||[];return h.length?'<small class="hist">'+h.slice().reverse().map(x=>'Was '+esc(x.p||"no one")+(x.ackAt?' (noted '+esc(whenText(new Date(x.ackAt)))+')':'')+', changed '+esc(whenText(new Date(x.endedAt)))).join("<br>")+'</small>':''}
 function dvRoster(){const W=dvWeds();
-  openSheet('<h2>Devotions roster</h2><div class="dvlist">'+W.map(i=>{const w=D.sessions[i],c=dvNow(w);
+  openSheet('<div class="dvtop"><h2>Devotions roster</h2><button type="button" class="btn navy" data-close>Done</button></div><div class="dvlist">'+W.map(i=>{const w=D.sessions[i],c=dvNow(w);
     const off=offOf(w);if(off&&!(c&&c.p))return '<div class="dvrow off"><div><b>'+esc(fmt(w,true))+'</b><small>'+esc(off.l)+' · no devotions needed</small></div><button type="button" class="btn" data-dvw="'+w+'">Change</button></div>';
     return '<div class="dvrow'+(off?' off':'')+'"><div><b>'+esc(fmt(w,true))+'</b>'+(off?'<small>'+esc(off.l)+'</small>':'')+'<small'+(c&&c.p?'':' class="no"')+'>'+esc(c&&c.p?c.p:"No one yet")+'</small><div class="dvst">'+dvStatus(w,c)+'</div>'+dvHist(w)+'</div><button type="button" class="btn" data-dvw="'+w+'">Change</button></div>'}).join("")
-   +'</div><p class="sub">Shows the next '+W.length+' Wednesdays.</p>'+dvMoreHtml()+'<button type="button" class="btn navy" data-close>Done</button>',"dvroster")}
+   +'</div><p class="sub">Shows the next '+W.length+' Wednesdays.</p>'+dvMoreHtml(),"dvroster")}
 let dvSel=null;
 function dvChoose(w){const i=D.sessions.indexOf(w),cur=dvNow(w);dvSel=cur&&cur.p?{p:cur.p,m:cur.m||""}:null;
   const ms=D.members.filter(x=>!x.test).sort((a,b)=>a.name.localeCompare(b.name));
@@ -874,6 +886,7 @@ document.addEventListener("click",e=>{
   const sb=t.closest("button[data-set]");if(sb){const m=me(),i=+sb.dataset.i;if(!m)return;if(eff(m,i).want===sb.dataset.set)return;confirmSheet(i,sb.dataset.set);return}
   const rb=t.closest("button[data-rec]");if(rb){const r=recs[+rb.dataset.rec];if(r)recSheet(r);return}
   const mvb=t.closest("button[data-mv]");if(mvb){viewMusic(mvb);return}
+  const wdb=t.closest("button[data-wk]");if(wdb){openWords(wdb);return}
   if(t.closest("#mvClose")){closeMusic();return}
   if(t.closest("#mvPrint")){printMusic();return}
   const nb=t.closest("button[data-noted]");if(nb){const n=(D.notes||[]).find(x=>x.id===nb.dataset.noted);if(!n)return;markNoted(n);return}
@@ -947,7 +960,7 @@ window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="5.5";
+window.__bandAppVer="5.6";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
