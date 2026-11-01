@@ -82,7 +82,7 @@ article.dc.hl{outline:4px solid var(--brass);outline-offset:2px}
 .msg .ask{background:var(--surface);border-radius:12px;padding:10px 12px;font-weight:700}
 .msg .mine{border-left:4px solid var(--navy);background:var(--surface);border-radius:8px;padding:8px 12px}
 .msg .mine small{display:block;color:var(--muted)}
-.rform{display:grid;gap:10px}.ropts{display:grid;gap:8px}
+.rform{display:grid;gap:10px}.orline{text-align:center;color:var(--muted);font-weight:700;margin:2px 0}.ropts{display:grid;gap:8px}
 .ropt{appearance:none;min-height:56px;border-radius:14px;border:2px solid var(--line-strong);background:var(--surface);color:var(--ink);font:700 1.05rem var(--f-body);text-align:left;padding:10px 16px;cursor:pointer}
 .ropt[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--on-navy)}
 .ropt[aria-pressed="true"]::before{content:"\2713  "}
@@ -136,6 +136,9 @@ article.dc.hl{outline:4px solid var(--brass);outline-offset:2px}
 .srch button{appearance:none;width:44px;height:44px;border-radius:10px;border:0;background:var(--bg);color:var(--muted);font-size:1rem;cursor:pointer}
 .dvopts{display:grid;gap:8px;max-height:46vh;overflow-y:auto}
 .dvopt{appearance:none;min-height:54px;border:2px solid var(--line);border-radius:12px;padding:10px 14px;font:700 1.05rem var(--f-body);color:var(--ink);background:var(--surface);display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;cursor:pointer}
+.dvbar{position:sticky;top:0;z-index:2;margin:-20px -16px 0;padding:20px 16px 12px;background:var(--surface);border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dvbar .btn{min-height:60px;font-size:1.15rem}
+.dvpick{font-weight:700}
 .dvopt small{font-weight:400;color:var(--bad);font-size:.9rem}.dvopt.alt{font-weight:400;border-style:dashed}
 .dvopt[aria-pressed="true"]{border-color:var(--navy);background:color-mix(in srgb,var(--navy) 14%,var(--surface))}
 .pinin{font:800 2rem var(--f-body)!important;letter-spacing:.5em;text-align:center}
@@ -167,6 +170,7 @@ ol.mp li.band .musb{margin-top:8px}
 .mvb img{display:block;width:100%;height:auto}
 .mvb .mvm{color:#36415c;text-align:center;padding:40px 10px;font-weight:700}
 .mvb .mvm.err{color:#a8231b}
+.mvf .btn{width:100%;min-height:60px;font-size:1.2rem;letter-spacing:.06em;margin-bottom:8px}
 .mvf{padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);color:var(--muted);text-align:center;font-size:.9rem}
 /* Meeting Plan: the whole order of service, the band's items in gold */
 ol.mp{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
@@ -304,7 +308,7 @@ label.f{display:grid;gap:6px;font-weight:700}
 </nav>
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="pick" class="pick" hidden><div class="pickcard"><h1><small>Wollongong Salvos</small>Who are you?</h1><p class="muted">Choose your name once. This phone will remember it.</p><label class="f">Your name<select id="who"><option value="">Choose your name</option></select></label><button class="btn send" id="pickGo" disabled>Continue</button></div></div>
-<div id="mv" class="mv" hidden role="dialog" aria-modal="true" aria-labelledby="mvT"><div class="mvh"><div><b id="mvT"></b><span id="mvS"></span><span class="yp" id="mvP"></span></div><button type="button" class="btn navy" id="mvClose">Close</button></div><div class="mvb" id="mvB"></div><div class="mvf">Spread two fingers to make it bigger. Turn your phone sideways for larger music.</div></div>
+<div id="mv" class="mv" hidden role="dialog" aria-modal="true" aria-labelledby="mvT"><div class="mvh"><div><b id="mvT"></b><span id="mvS"></span><span class="yp" id="mvP"></span></div><button type="button" class="btn navy" id="mvClose">Close</button></div><div class="mvb" id="mvB"></div><div class="mvf"><button type="button" class="btn brass" id="mvPrint" disabled>PRINT</button>Spread two fingers to make it bigger. Turn your phone sideways for larger music.</div></div>
 <div id="sheet" class="sheet" hidden><div class="inner" id="sheetInner" role="dialog" aria-modal="true"></div></div>
 
 <style>
@@ -591,17 +595,17 @@ function replyForm(n){const sel=rsel[n.id]||(rsel[n.id]={c:[],t:""}),k=n.rs.k;
 function noteHtml(n,btn){const r=n.rs?myReply(n):null;
   let h='<div class="msg'+(btn?'':' read')+'"><span class="from">'+(n.devo?'Just for you · Devotions':n.fp&&btn?'Just for you · Your part':n.to?'Just for you':btn?'From the Bandmaster':'Read')+(n.date?' · '+esc(fmt(n.date,true)):'')+'</span><div class="nt">'+(n.fp?esc(n.fp.l)+'<br><b class="fpp">'+esc(n.fp.p)+'</b>':linky(n.text))+'</div>';
   if(r)h+='<div class="mine"><b>Your reply</b> · '+esc(whenText(new Date(r.at)))+'<div>'+esc(replyText(n,r))+'</div><small>Sent for Bandmaster</small></div>';
-  if(btn){if(n.rs&&!n.cl&&!r)h+=replyForm(n);
-    else h+=(n.devo&&n.ack&&!n.cl?'<div class="ask">Please tap Noted so the Devotions Coordinator knows you\'ve seen it.</div>':'')+'<button type="button" class="btn brass" data-noted="'+esc(n.id)+'">Noted</button>'}
+  if(btn){if(n.rs&&!n.cl&&!r)h+=replyForm(n)+'<p class="orline">or</p>';
+    h+=(n.devo&&n.ack&&!n.cl?'<div class="ask">Please tap Noted so the Devotions Coordinator knows you\'ve seen it.</div>':'')+'<button type="button" class="btn brass" data-noted="'+esc(n.id)+'">Noted</button>'}
   else if(n.rs&&n.cl&&!r)h+='<p class="sub">Replies have closed.</p>';
   return h+'</div>'}
 async function sendReply(n,b){const m=me(),sel=rsel[n.id];if(!m||!sel)return;
   if(!window.__bandApi){showMsg("Not sent","Open the band app to reply.");return}
   b.disabled=true;b.textContent="Sending…";
-  try{const r=await window.__bandApi({api:"reply",m:m.id,nid:n.id,c:sel.c.join(","),t:sel.t});
+  try{const r=await window.__bandApi({api:"reply",m:m.id,nid:n.id,ch:sel.c.join(","),t:sel.t});
     if(r&&r.ok){const L=store.get("band.replies",{});L[n.id]=r.reply;store.set("band.replies",L);delete rsel[n.id];markNoted(n);showMsg("Reply sent","The Bandmaster will see it.");return}
-    showMsg("Not sent",r&&r.error==="closed"?"Replies to this note have closed.":"That didn't send. Try again.")}
-  catch(e){showMsg("Not sent","Check your internet connection, then try again.")}
+    showMsg("Not sent",r&&r.error==="closed"?"Replies to this note have closed.":"That didn't send. Try again."+(r&&r.error?" ("+r.error+")":""))}
+  catch(e){showMsg("Not sent",navigator.onLine===false?"Check your internet connection, then try again.":"That didn't send ("+String(e&&e.message||e)+"). Try again.")}
   renderNotes()}
 document.addEventListener("click",e=>{const o=e.target.closest("[data-ropt]");if(o){const box=o.closest("[data-rnote]"),id=box.dataset.rnote,n=(D.notes||[]).find(x=>x.id===id);if(!n)return;
     const sel=rsel[id]||(rsel[id]={c:[],t:""}),i=+o.dataset.ropt;
@@ -709,15 +713,41 @@ async function viewMusic(b){const m=me();if(!m||!window.__bandApi)return;const i
   const nom=((D.alloc||{})[s]||{})[m.id];
   $("mvT").textContent=b.dataset.t;$("mvS").textContent=(b.dataset.i?b.dataset.i+" · ":"")+fmt(s,true);
   $("mvP").textContent=q==="Bandmaster"?"The Bandmaster's part":(nom?"Your part on "+fmt(s,true)+": ":"Your part: ")+q;
-  $("mvB").innerHTML='<p class="mvm">Opening the music…</p>';$("mv").hidden=false;document.body.style.overflow="hidden";$("mvClose").focus({preventScroll:true});
+  $("mvB").innerHTML='<p class="mvm">Opening the music…</p>';$("mvPrint").disabled=true;$("mv").hidden=false;document.body.style.overflow="hidden";$("mvClose").focus({preventScroll:true});
   const k=id+"|"+q;let src=mvCache.get(k);
   try{if(!src){const r=await window.__bandApi({api:"music",m:m.id,d:s,id:id});
       if(!r||!r.ok||!r.b64)throw new Error(r&&r.error==="none"?"none":"failed");
       src="data:"+(/^image\/(png|jpeg)$/.test(r.mime||"")?r.mime:"image/png")+";base64,"+r.b64;mvCache.set(k,src)}
     if(at!==mvAt||$("mv").hidden)return;
-    $("mvB").innerHTML='<img alt="Music for '+esc(b.dataset.t)+'" src="'+src+'">'}
+    $("mvB").innerHTML='<img alt="Music for '+esc(b.dataset.t)+'" src="'+src+'">';$("mvPrint").disabled=false}
   catch(err){if(at!==mvAt||$("mv").hidden)return;
     $("mvB").innerHTML='<p class="mvm err">'+(err.message==="none"?"This music isn't ready for your part yet.":"Couldn't open the music. Check you're connected to the internet, then try again.")+'</p>'}}
+// PRINT: an A4 PDF of the music on screen (the piece, the part, then the picture as large as fits), like the Hub's Print.
+// jsPDF loads only when PRINT is tapped. The tab is opened straight away so the phone doesn't block it; if it can't open, the PDF downloads.
+const JSPDF_URL="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";let jspdfP=null;
+function loadJsPdf(){if(window.jspdf)return Promise.resolve(window.jspdf);if(jspdfP)return jspdfP;
+  return jspdfP=new Promise((ok,no)=>{const sc=document.createElement("script"),t=setTimeout(()=>{jspdfP=null;no(new Error("timeout"))},15000);
+    sc.src=JSPDF_URL;sc.onload=()=>{clearTimeout(t);window.jspdf?ok(window.jspdf):(jspdfP=null,no(new Error("not loaded")))};
+    sc.onerror=()=>{clearTimeout(t);jspdfP=null;no(new Error("load failed"))};document.head.appendChild(sc)})}
+const pdfSafe=t=>String(t==null?"":t).normalize("NFKC").replace(/[‘’‚′]/g,"'").replace(/[“”„″]/g,'"').replace(/[–—−]/g,"-").replace(/…/g,"...").replace(/[•●]/g,"-").replace(/[^\x20-\x7E\xA0-\xFF]/g,"");
+async function printMusic(){const img=$("mvB").querySelector("img"),b=$("mvPrint");if(!img||!img.naturalWidth){showMsg("Wait a moment","Tap PRINT once the music is showing.");return}
+  let win=null;try{win=window.open("","_blank")}catch(e){}
+  if(win){try{win.document.title="Making the PDF…";win.document.body.innerHTML='<p style="font:700 1.3rem sans-serif;padding:30px;text-align:center">Making the PDF…</p>'}catch(e){}}
+  b.disabled=true;b.textContent="Making the PDF…";
+  try{const J=(await loadJsPdf()).jsPDF;
+    let src=img.src,ft=(src.match(/^data:image\/(png|jpe?g)/i)||[])[1];
+    if(!ft){const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);src=c.toDataURL("image/png");ft="png"}
+    const title=$("mvT").textContent,doc=new J({unit:"mm",format:"a4"}),PW=210,PH=297,M=12,W=PW-2*M;let y=M;
+    doc.setFont("helvetica","bold");doc.setFontSize(16);doc.setTextColor(0);const tl=doc.splitTextToSize(pdfSafe(title),W);doc.text(tl,M,y+5);y+=tl.length*7+1;
+    doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(80);const sl=doc.splitTextToSize(pdfSafe($("mvS").textContent+" - "+$("mvP").textContent),W);doc.text(sl,M,y+3);y+=sl.length*4.5+3;
+    const k=Math.min(W/img.naturalWidth,(PH-M-10-y)/img.naturalHeight),w=img.naturalWidth*k,h=img.naturalHeight*k;
+    doc.addImage(src,/png/i.test(ft)?"PNG":"JPEG",M+(W-w)/2,y,w,h,undefined,"FAST");
+    const url=URL.createObjectURL(doc.output("blob")),name=(pdfSafe(title).replace(/[\\/:*?"<>|]/g,"-").slice(0,80)||"music")+".pdf";
+    let shown=false;if(win&&!win.closed){try{win.location.href=url;shown=true}catch(e){}}
+    if(!shown){const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();showMsg("PDF saved","Look in your downloads to print it.")}
+    setTimeout(()=>URL.revokeObjectURL(url),120000)}
+  catch(err){if(win&&!win.closed)try{win.close()}catch(e){}showMsg("Couldn't make the PDF","Check you're connected to the internet, then try again.")}
+  finally{b.textContent="PRINT";b.disabled=!$("mvB").querySelector("img")}}
 function closeMusic(){mvAt++;$("mv").hidden=true;$("mvB").innerHTML="";document.body.style.overflow=""}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mv").hidden){e.stopPropagation();closeMusic()}},true);
 function recSheet(r){const url=String(r.l||"").trim();let body="";
@@ -767,17 +797,18 @@ function dvRoster(){const W=dvWeds();
 let dvSel=null;
 function dvChoose(w){const i=D.sessions.indexOf(w),cur=dvNow(w);dvSel=cur&&cur.p?{p:cur.p,m:cur.m||""}:null;
   const ms=D.members.filter(x=>!x.test).sort((a,b)=>a.name.localeCompare(b.name));
-  openSheet('<h2>Who is doing devotions on '+esc(fmt(w,true))+'?</h2>'
+  openSheet('<div class="dvbar"><button type="button" class="btn" id="dvBack">Cancel</button><button type="button" class="btn brass" id="dvGo" data-w="'+w+'" disabled>Save</button></div>'
+   +'<h2>Who is doing devotions on '+esc(fmt(w,true))+'?</h2><p class="dvpick" id="dvPick" aria-live="polite">Choose a name, then tap Save.</p>'
    +'<label class="srch"><span aria-hidden="true">'+ICON.search+'</span><input type="search" id="dvQ" placeholder="Search for a name" autocomplete="off" aria-label="Search for a name"><button type="button" id="dvQx" aria-label="Clear">✕</button></label>'
    +'<div class="dvopts">'+ms.map(m=>{const away=i>=0&&["x","p","s"].includes(m.cells[i]);return '<button type="button" class="dvopt" data-dvm="'+esc(m.id)+'" data-n="'+esc(m.name.toLowerCase())+'" aria-pressed="'+(!!dvSel&&dvSel.m===m.id)+'">'+esc(m.name)+(away?'<small>away that day</small>':'')+'</button>'}).join("")
    +'<button type="button" class="dvopt alt" data-dvm="__other" aria-pressed="'+(!!dvSel&&!dvSel.m)+'">Someone else (type a name)</button>'
    +'<input type="text" id="dvOther" maxlength="60" placeholder="Their name" value="'+esc(dvSel&&!dvSel.m?dvSel.p:"")+'"'+(dvSel&&!dvSel.m?'':' hidden')+'>'
    +'<button type="button" class="dvopt alt" data-dvm="__none" aria-pressed="false">No one yet</button></div>'
-   +'<button type="button" class="btn brass" id="dvGo" data-w="'+w+'" disabled>Choose a name</button><button type="button" class="btn" id="dvBack">No, go back</button>',"dvchoose")}
+   ,"dvchoose")}
 function dvGoLabel(w){const b=$("dvGo");if(!b)return;const o=$("dvOther");
   const nm=dvSel?(dvSel.none?"":dvSel.m?dvSel.p:(o?o.value.trim():"")):null;
   b.disabled=nm===null||(dvSel&&!dvSel.m&&!dvSel.none&&!nm);
-  b.textContent=nm===null?"Choose a name":dvSel.none?"Yes, no one yet on "+fmt(w,true):nm?"Yes, "+nm+" on "+fmt(w,true):"Type their name"}
+  b.textContent="Save";const pk=$("dvPick");if(pk)pk.textContent=nm===null?"Choose a name, then tap Save.":dvSel.none?"No one yet on "+fmt(w,true)+". Tap Save.":nm?nm+" on "+fmt(w,true)+". Tap Save.":"Type their name, then tap Save."}
 async function dvSave(w,send){const o=$("dvOther"),person=dvSel.none?"":dvSel.m?dvSel.p:(o?o.value.trim():dvSel.p||""),pm=dvSel.none?"":dvSel.m||"";
   const b=$("dvGo")||document.querySelector("[data-dvsend]");if(b){b.disabled=true;b.textContent="Saving…"}
   try{const r=await window.__bandApi({api:"devo",m:me().id,pin:dvPin(),w:w,person:person,pm:pm,send:send?"1":"0"});
@@ -844,6 +875,7 @@ document.addEventListener("click",e=>{
   const rb=t.closest("button[data-rec]");if(rb){const r=recs[+rb.dataset.rec];if(r)recSheet(r);return}
   const mvb=t.closest("button[data-mv]");if(mvb){viewMusic(mvb);return}
   if(t.closest("#mvClose")){closeMusic();return}
+  if(t.closest("#mvPrint")){printMusic();return}
   const nb=t.closest("button[data-noted]");if(nb){const n=(D.notes||[]).find(x=>x.id===nb.dataset.noted);if(!n)return;markNoted(n);return}
   const vb=t.closest("button[data-view]");if(vb){dview=vb.dataset.view;renderDates();return}
   const cm=t.closest("button[data-cm]");if(cm){const months=calMonths(upcoming());const k=months.indexOf(calM)+(+cm.dataset.cm);if(months[k]){calM=months[k];calSel=null;calPast=null}renderDates();return}
@@ -915,7 +947,7 @@ window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="5.3";
+window.__bandAppVer="5.5";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
