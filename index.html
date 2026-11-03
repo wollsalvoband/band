@@ -746,15 +746,15 @@ function loadJsPdf(){if(window.jspdf)return Promise.resolve(window.jspdf);if(jsp
     sc.src=JSPDF_URL;sc.onload=()=>{clearTimeout(t);window.jspdf?ok(window.jspdf):(jspdfP=null,no(new Error("not loaded")))};
     sc.onerror=()=>{clearTimeout(t);jspdfP=null;no(new Error("load failed"))};document.head.appendChild(sc)})}
 const pdfSafe=t=>String(t==null?"":t).normalize("NFKC").replace(/[‘’‚′]/g,"'").replace(/[“”„″]/g,'"').replace(/[–—−]/g,"-").replace(/…/g,"...").replace(/[•●]/g,"-").replace(/[^\x20-\x7E\xA0-\xFF]/g,"");
-// A Full Score is landscape pages stacked into one tall picture (tunes.py stack(), 24 pixels around each page), too small to read
-// if it is all fitted on one sheet. scorePages() gives each page's place in the picture, or null for any other picture.
-function scorePages(id,W,H){if(!/^(US|NJS|TS)-/.test(id||"")||W<2000)return null;
-  const pad=24,n=Math.round((H-pad)/((W-2*pad)*595/842+pad));if(n<2)return null;const h=(H-pad)/n-pad;
+// A band journal piece (US, NJS, TS) is its whole A4 pages stacked into one picture (tunes.py stack(), 24 pixels around each page):
+// landscape for a Full Score, portrait for a part. a4Pages() gives each page's place in the picture, or null for any other picture.
+function a4Pages(id,W,H){if(!/^(US|NJS|TS)-/.test(id||""))return null;
+  const pad=24,a4=(W-2*pad)*(W<2000?842/595:595/842),n=Math.round((H-pad)/(a4+pad));if(n<1)return null;const h=(H-pad)/n-pad;if(Math.abs(h-a4)>a4*.02)return null;
   return Array.from({length:n},(_,i)=>({x:pad,y:Math.round(pad+i*(h+pad)),w:W-2*pad,h:Math.round(h)}))}
-// one score page on each landscape A4 sheet, with the heading and page number along the top
-function scorePdf(J,img,pages,head){const doc=new J({unit:"mm",format:"a4",orientation:"landscape"}),PW=297,PH=210,M=8,T=7;
-  pages.forEach((p,i)=>{if(i)doc.addPage("a4","landscape");
-    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(80);doc.text(doc.splitTextToSize(pdfSafe(head),PW-2*M-30)[0],M,M+2);doc.text("Page "+(i+1)+" of "+pages.length,PW-M,M+2,{align:"right"});
+// one page on each A4 sheet, turned the way the page is, with the heading (and the page number, if there are more) along the top
+function a4Pdf(J,img,pages,head){const land=pages[0].w>pages[0].h,or=land?"landscape":"portrait",doc=new J({unit:"mm",format:"a4",orientation:or}),PW=land?297:210,PH=land?210:297,M=8,T=7;
+  pages.forEach((p,i)=>{if(i)doc.addPage("a4",or);
+    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(80);doc.text(doc.splitTextToSize(pdfSafe(head),PW-2*M-30)[0],M,M+2);if(pages.length>1)doc.text("Page "+(i+1)+" of "+pages.length,PW-M,M+2,{align:"right"});
     const c=document.createElement("canvas");c.width=p.w;c.height=p.h;c.getContext("2d").drawImage(img,p.x,p.y,p.w,p.h,0,0,p.w,p.h);
     const k=Math.min((PW-2*M)/p.w,(PH-2*M-T)/p.h),w=p.w*k,h=p.h*k;
     doc.addImage(c.toDataURL("image/jpeg",0.9),"JPEG",(PW-w)/2,M+T,w,h,undefined,"FAST")});
@@ -766,8 +766,8 @@ async function printMusic(){const img=$("mvB").querySelector("img"),b=$("mvPrint
   try{const J=(await loadJsPdf()).jsPDF;
     let src=img.src,ft=(src.match(/^data:image\/(png|jpe?g)/i)||[])[1];
     if(!ft){const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);src=c.toDataURL("image/png");ft="png"}
-    const title=$("mvT").textContent,sp=scorePages(mvPic,img.naturalWidth,img.naturalHeight);let doc;
-    if(sp)doc=scorePdf(J,img,sp,title+" - "+$("mvS").textContent+" - "+$("mvP").textContent);
+    const title=$("mvT").textContent,sp=a4Pages(mvPic,img.naturalWidth,img.naturalHeight);let doc;
+    if(sp&&$("mvN").hidden)doc=a4Pdf(J,img,sp,title+" - "+$("mvS").textContent+" - "+$("mvP").textContent);
     else{doc=new J({unit:"mm",format:"a4"});const PW=210,PH=297,M=12,W=PW-2*M;let y=M;
     doc.setFont("helvetica","bold");doc.setFontSize(16);doc.setTextColor(0);const tl=doc.splitTextToSize(pdfSafe(title),W);doc.text(tl,M,y+5);y+=tl.length*7+1;
     doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(80);const sl=doc.splitTextToSize(pdfSafe($("mvS").textContent+" - "+$("mvP").textContent),W);doc.text(sl,M,y+3);y+=sl.length*4.5+3;
@@ -980,7 +980,7 @@ window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="5.8";
+window.__bandAppVer="5.9";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
