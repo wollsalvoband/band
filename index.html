@@ -723,8 +723,8 @@ function rangeList(){const m=me(),f=$("rgF").value,t=$("rgT").value;const box=$(
   updRangeBtn(ds.filter(i=>rangeSel[D.sessions[i]]&&eff(m,i).want!=="away").length)}
 function updRangeBtn(n){const b=document.querySelector("[data-rgo]");if(!b)return;b.disabled=!n;b.textContent=n?"Submit to Bandmaster for noting ("+n+" date"+(n>1?"s":"")+")":"No dates picked"}
 // the music viewer: asks the Apps Script for the player's own part (api=music) and shows it full screen
-const mvCache=new Map();let mvAt=0;
-async function viewMusic(b){const m=me();if(!m||!window.__bandApi)return;const id=b.dataset.mv,s=b.dataset.s,q=partOn(m,s),at=++mvAt;
+const mvCache=new Map();let mvAt=0,mvPic="";
+async function viewMusic(b){const m=me();if(!m||!window.__bandApi)return;const id=b.dataset.mv,s=b.dataset.s,q=partOn(m,s),at=++mvAt;mvPic=id;
   const nom=((D.alloc||{})[s]||{})[m.id];
   $("mvT").textContent=b.dataset.t;$("mvS").textContent=(b.dataset.i?b.dataset.i+" · ":"")+fmt(s,true);
   $("mvP").textContent=q==="Bandmaster"?"The Bandmaster's part":(nom?"Your part on "+fmt(s,true)+": ":"Your part: ")+q;
@@ -746,6 +746,19 @@ function loadJsPdf(){if(window.jspdf)return Promise.resolve(window.jspdf);if(jsp
     sc.src=JSPDF_URL;sc.onload=()=>{clearTimeout(t);window.jspdf?ok(window.jspdf):(jspdfP=null,no(new Error("not loaded")))};
     sc.onerror=()=>{clearTimeout(t);jspdfP=null;no(new Error("load failed"))};document.head.appendChild(sc)})}
 const pdfSafe=t=>String(t==null?"":t).normalize("NFKC").replace(/[‘’‚′]/g,"'").replace(/[“”„″]/g,'"').replace(/[–—−]/g,"-").replace(/…/g,"...").replace(/[•●]/g,"-").replace(/[^\x20-\x7E\xA0-\xFF]/g,"");
+// A Full Score is landscape pages stacked into one tall picture (tunes.py stack(), 24 pixels around each page), too small to read
+// if it is all fitted on one sheet. scorePages() gives each page's place in the picture, or null for any other picture.
+function scorePages(id,W,H){if(!/^(US|NJS|TS)-/.test(id||"")||W<2000)return null;
+  const pad=24,n=Math.round((H-pad)/((W-2*pad)*595/842+pad));if(n<2)return null;const h=(H-pad)/n-pad;
+  return Array.from({length:n},(_,i)=>({x:pad,y:Math.round(pad+i*(h+pad)),w:W-2*pad,h:Math.round(h)}))}
+// one score page on each landscape A4 sheet, with the heading and page number along the top
+function scorePdf(J,img,pages,head){const doc=new J({unit:"mm",format:"a4",orientation:"landscape"}),PW=297,PH=210,M=8,T=7;
+  pages.forEach((p,i)=>{if(i)doc.addPage("a4","landscape");
+    doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(80);doc.text(doc.splitTextToSize(pdfSafe(head),PW-2*M-30)[0],M,M+2);doc.text("Page "+(i+1)+" of "+pages.length,PW-M,M+2,{align:"right"});
+    const c=document.createElement("canvas");c.width=p.w;c.height=p.h;c.getContext("2d").drawImage(img,p.x,p.y,p.w,p.h,0,0,p.w,p.h);
+    const k=Math.min((PW-2*M)/p.w,(PH-2*M-T)/p.h),w=p.w*k,h=p.h*k;
+    doc.addImage(c.toDataURL("image/jpeg",0.9),"JPEG",(PW-w)/2,M+T,w,h,undefined,"FAST")});
+  return doc}
 async function printMusic(){const img=$("mvB").querySelector("img"),b=$("mvPrint");if(!img||!img.naturalWidth){showMsg("Wait a moment","Tap PRINT once the music is showing.");return}
   let win=null;try{win=window.open("","_blank")}catch(e){}
   if(win){try{win.document.title="Making the PDF…";win.document.body.innerHTML='<p style="font:700 1.3rem sans-serif;padding:30px;text-align:center">Making the PDF…</p>'}catch(e){}}
@@ -753,12 +766,14 @@ async function printMusic(){const img=$("mvB").querySelector("img"),b=$("mvPrint
   try{const J=(await loadJsPdf()).jsPDF;
     let src=img.src,ft=(src.match(/^data:image\/(png|jpe?g)/i)||[])[1];
     if(!ft){const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);src=c.toDataURL("image/png");ft="png"}
-    const title=$("mvT").textContent,doc=new J({unit:"mm",format:"a4"}),PW=210,PH=297,M=12,W=PW-2*M;let y=M;
+    const title=$("mvT").textContent,sp=scorePages(mvPic,img.naturalWidth,img.naturalHeight);let doc;
+    if(sp)doc=scorePdf(J,img,sp,title+" - "+$("mvS").textContent+" - "+$("mvP").textContent);
+    else{doc=new J({unit:"mm",format:"a4"});const PW=210,PH=297,M=12,W=PW-2*M;let y=M;
     doc.setFont("helvetica","bold");doc.setFontSize(16);doc.setTextColor(0);const tl=doc.splitTextToSize(pdfSafe(title),W);doc.text(tl,M,y+5);y+=tl.length*7+1;
     doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(80);const sl=doc.splitTextToSize(pdfSafe($("mvS").textContent+" - "+$("mvP").textContent),W);doc.text(sl,M,y+3);y+=sl.length*4.5+3;
     if(!$("mvN").hidden){doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(0);doc.text(pdfSafe("No percussion part. "+$("mvN").querySelector("small").textContent),M,y+3);y+=7}
     const k=Math.min(W/img.naturalWidth,(PH-M-10-y)/img.naturalHeight),w=img.naturalWidth*k,h=img.naturalHeight*k;
-    doc.addImage(src,/png/i.test(ft)?"PNG":"JPEG",M+(W-w)/2,y,w,h,undefined,"FAST");
+    doc.addImage(src,/png/i.test(ft)?"PNG":"JPEG",M+(W-w)/2,y,w,h,undefined,"FAST")}
     const url=URL.createObjectURL(doc.output("blob")),name=(pdfSafe(title).replace(/[\\/:*?"<>|]/g,"-").slice(0,80)||"music")+".pdf";
     let shown=false;if(win&&!win.closed){try{win.location.href=url;shown=true}catch(e){}}
     if(!shown){const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();showMsg("PDF saved","Look in your downloads to print it.")}
@@ -965,7 +980,7 @@ window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="5.7";
+window.__bandAppVer="5.8";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
