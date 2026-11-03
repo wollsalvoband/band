@@ -176,6 +176,9 @@ ol.mp li.band .mbtns{margin-top:8px}ol.mp li.band .mbtns .musb{margin-top:0}
 .mvb{flex:1;overflow:auto;background:#fff;padding:10px;-webkit-overflow-scrolling:touch}
 .mvb img{display:block;width:100%;height:auto}
 .mvb .mvm{color:#36415c;text-align:center;padding:40px 10px;font-weight:700}
+.mvn{background:#f6ecd8;border-left:6px solid #a8741c;color:#18213a;padding:10px 14px;font-size:1.3rem;font-weight:800;line-height:1.3}
+.mvn small{display:block;font-size:1.05rem;font-weight:600;color:#36415c}
+.mvn[hidden]{display:none}
 .mvb .mvm.err{color:#a8231b}
 .mvf .btn{width:100%;min-height:60px;font-size:1.2rem;letter-spacing:.06em;margin-bottom:8px}
 .mvf{padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);color:var(--muted);text-align:center;font-size:.9rem}
@@ -315,7 +318,7 @@ label.f{display:grid;gap:6px;font-weight:700}
 </nav>
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="pick" class="pick" hidden><div class="pickcard"><h1><small>Wollongong Salvos</small>Who are you?</h1><p class="muted">Choose your name once. This phone will remember it.</p><label class="f">Your name<select id="who"><option value="">Choose your name</option></select></label><button class="btn send" id="pickGo" disabled>Continue</button></div></div>
-<div id="mv" class="mv" hidden role="dialog" aria-modal="true" aria-labelledby="mvT"><div class="mvh"><div><b id="mvT"></b><span id="mvS"></span><span class="yp" id="mvP"></span></div><button type="button" class="btn navy" id="mvClose">Close</button></div><div class="mvb" id="mvB"></div><div class="mvf"><button type="button" class="btn brass" id="mvPrint" disabled>PRINT</button>Spread two fingers to make it bigger. Turn your phone sideways for larger music.</div></div>
+<div id="mv" class="mv" hidden role="dialog" aria-modal="true" aria-labelledby="mvT"><div class="mvh"><div><b id="mvT"></b><span id="mvS"></span><span class="yp" id="mvP"></span></div><button type="button" class="btn navy" id="mvClose">Close</button></div><div class="mvn" id="mvN" hidden></div><div class="mvb" id="mvB"></div><div class="mvf"><button type="button" class="btn brass" id="mvPrint" disabled>PRINT</button>Spread two fingers to make it bigger. Turn your phone sideways for larger music.</div></div>
 <div id="sheet" class="sheet" hidden><div class="inner" id="sheetInner" role="dialog" aria-modal="true"></div></div>
 
 <style>
@@ -725,6 +728,7 @@ async function viewMusic(b){const m=me();if(!m||!window.__bandApi)return;const i
   const nom=((D.alloc||{})[s]||{})[m.id];
   $("mvT").textContent=b.dataset.t;$("mvS").textContent=(b.dataset.i?b.dataset.i+" · ":"")+fmt(s,true);
   $("mvP").textContent=q==="Bandmaster"?"The Bandmaster's part":(nom?"Your part on "+fmt(s,true)+": ":"Your part: ")+q;
+  const fill=q==="Percussion"?(D.picFill||{})[id]:"";$("mvN").hidden=!fill;$("mvN").innerHTML=fill?'No percussion part<small>This is the '+esc(fill)+' part</small>':'';   // page text: the picture stays as printed
   $("mvB").innerHTML='<p class="mvm">Opening the music…</p>';$("mvPrint").disabled=true;$("mv").hidden=false;document.body.style.overflow="hidden";$("mvClose").focus({preventScroll:true});
   const k=id+"|"+q;let src=mvCache.get(k);
   try{if(!src){const r=await window.__bandApi({api:"music",m:m.id,d:s,id:id});
@@ -752,6 +756,7 @@ async function printMusic(){const img=$("mvB").querySelector("img"),b=$("mvPrint
     const title=$("mvT").textContent,doc=new J({unit:"mm",format:"a4"}),PW=210,PH=297,M=12,W=PW-2*M;let y=M;
     doc.setFont("helvetica","bold");doc.setFontSize(16);doc.setTextColor(0);const tl=doc.splitTextToSize(pdfSafe(title),W);doc.text(tl,M,y+5);y+=tl.length*7+1;
     doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(80);const sl=doc.splitTextToSize(pdfSafe($("mvS").textContent+" - "+$("mvP").textContent),W);doc.text(sl,M,y+3);y+=sl.length*4.5+3;
+    if(!$("mvN").hidden){doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(0);doc.text(pdfSafe("No percussion part. "+$("mvN").querySelector("small").textContent),M,y+3);y+=7}
     const k=Math.min(W/img.naturalWidth,(PH-M-10-y)/img.naturalHeight),w=img.naturalWidth*k,h=img.naturalHeight*k;
     doc.addImage(src,/png/i.test(ft)?"PNG":"JPEG",M+(W-w)/2,y,w,h,undefined,"FAST");
     const url=URL.createObjectURL(doc.output("blob")),name=(pdfSafe(title).replace(/[\\/:*?"<>|]/g,"-").slice(0,80)||"music")+".pdf";
@@ -960,7 +965,7 @@ window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="5.6";
+window.__bandAppVer="5.7";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
