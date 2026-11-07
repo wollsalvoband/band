@@ -22,10 +22,10 @@
 --f-body:"Atkinson Hyperlegible Next","Atkinson Hyperlegible",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11151f;--surface:#1b2130;--ink:#f1f3f8;--muted:#c2cadb;--line:#363f55;--line-strong:#59637c;--navy:#aebde9;--on-navy:#11151f;--brass:#e3b45c;--on-brass:#1b1406;--brass-soft:#3a2f18;--ok:#86d8a6;--ok-soft:#173424;--bad:#f39a90;--bad-soft:#3d1d1a;--wait:#f2cf6a;--wait-soft:#3a3014;--focus:#8db4ff;--scrim:rgba(0,0,0,.65);--off:#2a2f3b;--off-ink:#c2cadb;--ev:#c7b2f0;--ev-soft:#2c2342;--off-line:#59637c;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#11151f;--surface:#1b2130;--ink:#f1f3f8;--muted:#c2cadb;--line:#363f55;--line-strong:#59637c;--navy:#aebde9;--on-navy:#11151f;--brass:#e3b45c;--on-brass:#1b1406;--brass-soft:#3a2f18;--ok:#86d8a6;--ok-soft:#173424;--bad:#f39a90;--bad-soft:#3d1d1a;--wait:#f2cf6a;--wait-soft:#3a3014;--focus:#8db4ff;--scrim:rgba(0,0,0,.65);--off:#2a2f3b;--off-ink:#c2cadb;--ev:#c7b2f0;--ev-soft:#2c2342;--off-line:#59637c;color-scheme:dark}
-html{font-size:var(--fs);-webkit-text-size-adjust:100%}
+html{font-size:var(--fs);-webkit-text-size-adjust:100%;scrollbar-gutter:stable}   /* same width on every tab, scrollbar or not, so the tab bar doesn't shift */
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{background:var(--bg);color:var(--ink);font:1rem/1.45 var(--f-body);margin:0;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+body{background:var(--bg);color:var(--ink);font:1rem/1.45 var(--f-body);margin:0;padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));min-height:100vh;min-height:100dvh}
 p{margin:0}
 button,input,select{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
@@ -38,8 +38,8 @@ button,input,select{font:inherit;color:inherit}
 .btn:disabled{opacity:.5}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 /* header */
-.hdr{background:var(--surface);border-bottom:1px solid var(--line);padding:max(6px,env(safe-area-inset-top,0px)) 16px 6px}
-@media (display-mode:standalone){html{background:var(--surface)}.hdr{padding-top:calc(env(safe-area-inset-top,0px) + 4px)}}
+.hdr{background:var(--surface);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top,0px) + 8px) 16px 8px;position:relative;z-index:13}
+@media (display-mode:standalone){html{background:var(--surface)}.hdr{padding-top:calc(env(safe-area-inset-top,0px) + 12px)}}
 .hdr-in{max-width:680px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .brand{display:flex;flex-direction:column;min-width:0}
 .brand b{font:800 19px/1.15 var(--f-body);white-space:nowrap}
@@ -72,9 +72,11 @@ details.fold .fb{padding:0 14px 14px}
 details.fold .upd{display:block;font-weight:400;font-size:.92rem;color:var(--muted)}
 details.fold .bmw{white-space:pre-wrap;overflow-wrap:anywhere;font-size:1.05rem}
 details.fold .bmw.h{white-space:normal}details.fold .bmw p{margin:0 0 .8em}details.fold .bmw p:last-child{margin-bottom:0}
-.dvban{appearance:none;width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;background:var(--brass-soft);border:2px solid var(--brass);border-radius:16px;padding:14px;font:800 1.05rem var(--f-body);color:var(--ink);cursor:pointer;min-height:56px}
-.dvban small{display:block;font-weight:400;color:var(--muted)}.dvban .chev{font-size:1.6rem;color:var(--brass)}
-.dvban.none{background:var(--surface);border-color:var(--line);color:var(--muted);cursor:default;font-weight:700}
+.dvban{appearance:none;width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;background:color-mix(in srgb,var(--navy) 10%,var(--bg));border:0;border-left:4px solid var(--navy);border-radius:4px 10px 10px 4px;padding:10px 12px;font:600 1rem/1.35 var(--f-body);color:var(--ink);cursor:default;-webkit-tap-highlight-color:transparent}
+.dvban .ico{width:20px;height:20px;flex:none;margin-top:1px;color:var(--navy)}.dvban>span:not(.chev){flex:1;min-width:0}
+button.dvban{cursor:pointer}
+.dvban small{display:block;font-weight:400;color:var(--muted)}.dvban .chev{font-size:1.3rem;line-height:1;color:var(--muted);align-self:center}
+.dvban.none{color:var(--muted)}
 article.dc.hl{outline:4px solid var(--brass);outline-offset:2px}
 .dvst{margin-top:4px;font-size:.92rem}.pill{display:inline-block;font-size:.85rem;font-weight:700;padding:2px 10px;border-radius:99px;background:var(--off);color:var(--off-ink)}
 .pill.ok{background:var(--ok-soft);color:var(--ok)}.pill.wait{background:var(--wait-soft);color:var(--wait)}.pill.bad{background:var(--bad-soft);color:var(--bad)}
@@ -257,9 +259,10 @@ ol.mp .mpd{font-weight:400;margin-top:3px;white-space:pre-line}
 .mpill{background:var(--brass-soft);color:var(--ink);border-radius:999px;padding:2px 10px;font-size:.82rem;font-weight:700}
 /* Settings opens as a page in the Menu's space: the header and the tab bar stay, it slides in from the right */
 .sheet.page{background:none;top:var(--pgTop,0px);bottom:var(--pgBot,0px);align-items:stretch;z-index:11}
-.sheet.page .inner{max-width:none;border-radius:0;max-height:none;height:100%;background:var(--bg);padding:12px 16px 24px;align-content:start}
+.sheet.page .inner{grid-template-columns:minmax(0,1fr);max-width:none;border-radius:0;max-height:none;height:100%;background:var(--bg);padding:12px 16px 24px;align-content:start}
 .sheet.page .inner>*{width:100%;max-width:680px;margin-left:auto;margin-right:auto}
 .pgtop{display:flex;align-items:center;gap:6px}
+.sheet.page .pgtop{position:sticky;top:-12px;z-index:2;margin-top:-12px;padding:12px 0 6px;background:var(--bg)}
 .pgtop h2{flex:1}
 .back{appearance:none;border:0;background:none;color:var(--ink);width:48px;height:48px;margin-left:-10px;display:grid;place-items:center;cursor:pointer;border-radius:12px}
 .back svg{width:28px;height:28px}
@@ -268,16 +271,17 @@ ol.mp .mpd{font-weight:400;margin-top:3px;white-space:pre-line}
 .sheet.page.lv{z-index:30}
 .sheet.page .inner>.leave{max-width:none;margin:0}
 .leavecard{background:var(--surface);width:100%;max-width:600px;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));display:grid;gap:12px}
-@media (prefers-reduced-motion:no-preference){.sheet.page .inner{animation:fromR .22s ease-out}@keyframes fromR{from{transform:translateX(100%)}}}
+@media (prefers-reduced-motion:no-preference){.sheet.page:not(.still) .inner{animation:fromR .22s ease-out}@keyframes fromR{from{transform:translateX(100%)}}}
 .mrow .mav{width:52px;height:52px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--navy);color:var(--on-navy);font-weight:800;font-size:1.15rem}
-.fl{display:grid;gap:6px;font-weight:700}
-.two{display:grid;grid-template-columns:1fr;gap:12px}
+.fl{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;font-weight:700}
+.sheet input[type=date]{display:block;min-width:0;max-width:100%;-webkit-appearance:none;appearance:none}
+.two{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .two>*{min-width:0}
 ul.ticks{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:14px;overflow:hidden}
 ul.ticks li+li{border-top:1px solid var(--line)}
 ul.ticks label{display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 14px;cursor:pointer}
 ul.ticks input{width:26px;height:26px;accent-color:var(--bad);flex:none}
-ul.ticks .tk{display:grid}
+ul.ticks .tk{display:grid;min-width:0;overflow-wrap:anywhere}
 ul.ticks .tk small{color:var(--muted)}
 .sizes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .sizes button{appearance:none;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;min-height:72px;cursor:pointer;font-family:var(--f-body);font-weight:800;display:grid;place-items:center;gap:2px;padding:6px}
@@ -289,6 +293,9 @@ ul.ticks .tk small{color:var(--muted)}
 .snd span{display:inline-flex;align-items:center;gap:10px;min-height:64px;padding:0 26px;border-radius:999px;background:var(--brass);color:var(--on-brass);font:800 1.25rem var(--f-body);box-shadow:0 4px 18px rgba(0,0,0,.45)}
 .snd svg{width:30px;height:30px}.snd:focus-visible span{outline:3px solid var(--focus);outline-offset:3px}
 audio{width:100%}
+.setcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:10px}
+.setcard>.sec{margin:0;color:var(--ink);font-size:1.1rem;font-weight:800}
+.setcard>p{margin:0}
 .setrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--bg);border-radius:12px;padding:10px 14px}
 .lnk{appearance:none;border:0;background:none;color:var(--navy);font:700 1rem var(--f-body);text-decoration:underline;min-height:48px;padding:0 4px;cursor:pointer}
 /* sign-in and name pick (also used by the app's password gate) */
@@ -324,11 +331,12 @@ label.f{display:grid;gap:6px;font-weight:700}
 <main>
 <div class="wrap" id="v-week">
   <div id="noteTop"></div>
-  <div class="sec">This week</div>
+  <h1 class="pg">This week</h1>
   <div id="week" style="display:grid;gap:14px"></div>
 </div>
 <div class="wrap" id="v-dates" hidden>
   <div class="dhead"><h1 class="pg">My dates</h1><div class="seg" role="group" aria-label="How to show your dates"><button type="button" data-view="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>List</button><button type="button" data-view="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Calendar</button></div></div>
+  <div id="devoArea"></div>
   <div class="mgrp"><button class="mrow" id="rangeBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/></svg><span>Update Multiple Dates</span><span class="chev" aria-hidden="true">›</span></button></div>
   <div id="myarea" style="display:grid;gap:12px"></div>
 </div>
@@ -588,8 +596,8 @@ function renderWeek(){const m=me();recs=[];
   $("week").innerHTML=[wi,si,...xs].filter(i=>i!=null).sort((a,b)=>a-b).map(i=>cardHtml(m,i,true)).join("")||'<p class="muted">No band dates coming up.</p>'}
 function renderDates(){const m=me(),area=$("myarea");
   for(const b of document.querySelectorAll("[data-view]"))b.setAttribute("aria-pressed",String(b.dataset.view===dview));
-  if(!m){area.innerHTML="";return}
-  const up=upcoming(),banner=devoBanner(m);
+  const dva=$("devoArea");if(!m){area.innerHTML="";if(dva)dva.innerHTML="";return}
+  const up=upcoming(),banner="";if(dva)dva.innerHTML=devoBanner(m);
   if(dview==="cal"){area.innerHTML=banner+calHtml(m,up);return}
   // 10 dates, then 10 more with each tap of Show more dates, up to the 12 months the app has
   const list=up.slice(0,shown);let h="",mon=null;
@@ -598,10 +606,11 @@ function renderDates(){const m=me(),area=$("myarea");
   area.innerHTML=banner+(h||'<p class="muted">No band dates coming up.</p>')}
 // Devotions banner at the top of My dates: this member's upcoming Wednesdays on the devotions roster (with the coordinator's
 // latest changes). Tapping it goes to the next one in the list and outlines it for a few seconds. Read-only.
+const DV_ICO='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>';
 function myDevo(m){return upcoming().map(i=>D.sessions[i]).filter(s=>kind(s)==="wed"&&((D.devo||{})[s]||{}).m===m.id)}
 function devoBanner(m){const W=myDevo(m);
-  if(!W.length)return '<div class="dvban none">Devotions: you\'re not rostered</div>';
-  return '<button type="button" class="dvban" data-devogo="'+W[0]+'"><span>Devotions: you\'re on '+esc(fmt(W[0],true))+(W.length>1?'<small>Also '+esc(W.slice(1).map(s=>fmt(s,true)).join(", "))+'</small>':'')+'</span><span aria-hidden="true" class="chev">›</span></button>'}
+  if(!W.length)return '<div class="dvban none" role="note">'+DV_ICO+'<span>Devotions: you\'re not rostered</span></div>';
+  return '<button type="button" class="dvban" data-devogo="'+W[0]+'">'+DV_ICO+'<span>Devotions: you\'re on '+esc(fmt(W[0],true))+(W.length>1?'<small>Also '+esc(W.slice(1).map(s=>fmt(s,true)).join(", "))+'</small>':'')+'</span><span aria-hidden="true" class="chev">›</span></button>'}
 function devoGo(s){const i=D.sessions.indexOf(s);if(i<0)return;dview="list";
   const k=upcoming().indexOf(i);if(k>=shown)shown=Math.ceil((k+1)/10)*10;renderDates();
   const c=document.querySelector('#myarea article[data-s="'+s+'"]');if(!c)return;c.scrollIntoView({behavior:"smooth",block:"center"});
@@ -687,7 +696,7 @@ function renderNotes(){const {fresh,old}=notesSplit();
 function renderTabs(){for(const v of ["week","dates","msg","menu"])$("v-"+v).hidden=v!==tab;
   for(const b of document.querySelectorAll("#tbar button"))if(b.dataset.tab===tab)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")}
 function renderAll(){mergeX();renderTabs();renderNotes();renderWeek();renderDates();renderMenu();renderToast()}
-function setTab(t){tab=t;if(sheetKind==="size"||sheetKind==="range")closeSheet();if(t==="menu")renderMenu();renderTabs();window.scrollTo(0,0)}
+function setTab(t){tab=t;if(["size","range","dvroster","switch","ownpin"].includes(sheetKind))closeSheet();if(t==="menu")renderMenu();renderTabs();window.scrollTo(0,0)}
 let hiddenAt=0;
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){hiddenAt=Date.now();return}
   if(hiddenAt&&Date.now()-hiddenAt>300000){dview="list";shown=10;calM=null;calSel=null;calPast=null;renderDates();setTab("week")}hiddenAt=0});
@@ -739,7 +748,8 @@ function pageFit(sh){window.scrollTo(0,0);const hd=document.querySelector(".hdr"
   const atBot=!!tb&&getComputedStyle(tb).position==="fixed";
   let top=hd?hd.getBoundingClientRect().bottom:0;if(ub&&!ub.hidden)top=Math.max(top,ub.getBoundingClientRect().bottom);if(tb&&!atBot)top=Math.max(top,tb.getBoundingClientRect().bottom);
   sh.style.setProperty("--pgTop",top+"px");sh.style.setProperty("--pgBot",(atBot?tb.offsetHeight:0)+"px")}
-function openSheet(html,k){sheetKind=k;const sh=$("sheet");const pg=k==="size"||k==="range";if(sh.classList){sh.classList.toggle("page",pg);sh.classList.remove("lv")}if(pg)pageFit(sh);$("sheetInner").innerHTML=html;$("sheet").hidden=false}
+// Settings (and Change my PIN), Update Multiple Dates, Devotions Manager and Switch profile are full-screen pages with a back arrow
+function openSheet(html,k){const was=sheetKind;sheetKind=k;const sh=$("sheet");const pg=["size","range","dvroster","switch","ownpin"].includes(k);const fresh=sh.hidden;if(sh.classList){sh.classList.toggle("still",!fresh&&(was===k||!["size","range","dvroster","switch","ownpin"].includes(was)));sh.classList.toggle("page",pg);sh.classList.remove("lv")}if(pg)pageFit(sh);$("sheetInner").innerHTML=html;$("sheet").hidden=false;if(fresh)$("sheetInner").scrollTop=0}
 function closeSheet(){const c=sheetKind==="dvpin"&&pinCtx;pinCtx=null;$("sheet").hidden=true;$("sheetInner").innerHTML="";sheetKind=null;if(c&&c.cancel)c.cancel()}
 const REASONS=["Holidays","Work","Unwell","Family","Other"];
 function reasonsHtml(){return '<div class="reasons">'+REASONS.map(r=>'<button type="button" data-reason="'+r+'" aria-pressed="'+(reason===r)+'">'+r+'</button>').join("")+'</div>'+(reason==="Other"?'<input type="text" id="rOther" maxlength="60" placeholder="Type a short reason (optional)">':'')}
@@ -762,7 +772,7 @@ function rangeList(){const m=me(),f=$("rgF").value,t=$("rgT").value;const box=$(
   const ds=upcoming().filter(i=>{const s=D.sessions[i].slice(0,10);return a&&b&&s>=a&&s<b});   // the day they're back isn't missed
   if(!rangeSel)rangeSel={};
   if(!ds.length){box.innerHTML='<p class="muted">No band dates between those days.</p>';updRangeBtn(0);return}
-  box.innerHTML='<p class="sub">Select the dates you are away</p><ul class="ticks">'+ds.map(i=>{const s=D.sessions[i],e=eff(m,i),done=e.want==="away";
+  box.innerHTML='<p class="sub">Tick the dates you are away. Unselect if you will be here.</p><ul class="ticks">'+ds.map(i=>{const s=D.sessions[i],e=eff(m,i),done=e.want==="away";
     if(rangeSel[s]===undefined)rangeSel[s]=true;   // all ticked to start
     return '<li><label><input type="checkbox" data-rg="'+s+'"'+(rangeSel[s]?' checked':'')+(done?' disabled':'')+'><span class="tk"><b>'+esc(fmt(s,true))+'</b><small>'+(offOf(s)?esc(offOf(s).l):kindLabel(s))+(done?(e.st==="usual"?' · not usually on '+(kind(s)==="sun"?"Sundays":"Wednesdays"):' · already away'):'')+'</small></span></label></li>'}).join("")+'</ul>';
   updRangeBtn(ds.filter(i=>rangeSel[D.sessions[i]]&&eff(m,i).want!=="away").length)}
@@ -870,23 +880,23 @@ async function pinSubmit(v){const c=pinCtx;if(!c){closeSheet();return}
   try{const r=await window.__bandApi({api:"pin",m:c.m,role:c.role,pin:v});if(r&&r.ok){store.set("band.rolePin",{m:c.m,pin:v});pinCtx=null;c.ok(r)}else no(c.fail&&r&&r.error==="pin"?"That PIN was incorrect. Choose your name and try again.":pinErr(r,c.label))}
   catch(x){no("Couldn't check the PIN. Check your internet connection.")}}
 // Choose your own PIN: typed twice. first = straight after signing in with the Hub's PIN (Later keeps that one working)
-function ownPinSheet(err,first){openSheet('<h2>Choose your own PIN</h2><p class="sub">Pick 4 numbers you&#39;ll remember. You&#39;ll use them if you set up the band app on another phone.</p>'
+function ownPinSheet(err,first){openSheet(pageTop(first?"Choose your own PIN":"Change my PIN",first?"the app":"Settings",first?"data-close":"data-toset")+'<p class="sub">Pick 4 numbers you&#39;ll remember. You&#39;ll use them if you set up the band app on another phone.</p>'
   +'<label class="f">New PIN<input type="text" id="opIn1" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" class="pinin"></label>'
   +'<label class="f">Type it again<input type="text" id="opIn2" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" class="pinin"></label>'
-  +(err?'<p class="err" role="alert">'+esc(err)+'</p>':'')+'<button type="button" class="btn navy" id="opGo">Save my PIN</button><button type="button" class="btn" data-close>'+(first?'Later':'Not now')+'</button>',"ownpin");
+  +(err?'<p class="err" role="alert">'+esc(err)+'</p>':'')+'<button type="button" class="btn navy" id="opGo">Save my PIN</button><button type="button" class="btn" '+(first?'data-close>Later':'data-toset>Not now')+'</button>',"ownpin");
   setTimeout(()=>{const i=$("opIn1");i&&i.focus()},50)}
 async function ownPinSave(a,b,first){if(!/^\d{4}$/.test(a)){ownPinSheet("Type 4 numbers.",first);return}
   if(a!==b){ownPinSheet("The two PINs don't match. Type them again.",first);return}
   const s=pinState();if(!s||s.m!==who){closeSheet();return}
   try{const r=await window.__bandApi({api:"setpin",m:who,pin:s.pin,np:a});
-    if(r&&r.ok){store.set("band.rolePin",{m:who,pin:a});openSheet('<h2>Choose your own PIN</h2><p class="okm">Your PIN is changed. Use the new one next time.</p><button type="button" class="btn navy" data-close>Done</button>',"ownpin");return}
+    if(r&&r.ok){store.set("band.rolePin",{m:who,pin:a});openSheet(pageTop(first?"Choose your own PIN":"Change my PIN",first?"the app":"Settings",first?"data-close":"data-toset")+'<p class="okm">Your PIN is changed. Use the new one next time.</p><button type="button" class="btn navy" '+(first?'data-close':'data-toset')+'>Done</button>',"ownpin");return}
     ownPinSheet(r&&r.error==="pin"?"Your PIN has changed on another phone. Choose your name again to use the new one.":pinErr(r),first)}
   catch(x){ownPinSheet("Couldn't save your PIN. Check your internet connection.",first)}}
 // the PIN on this phone stopped working (reset in the Hub, or changed on another phone): back to the name list
 function pinLost(){store.set("band.rolePin","");who="";store.set("band.who","");closeSheet();$("pick").hidden=false;
   pickErr("Your PIN has changed. Choose your name and enter your PIN again.")}
 function pinSetHtml(){if(!window.__bandApi||!pinOkFor(who))return "";
-  return '<div class="sec">Your PIN</div><p class="small muted">The 4 numbers you use to get into the band app.</p><button type="button" class="btn wide" id="opOpen">Change my PIN</button>'}
+  return '<section class="setcard"><div class="sec">Your PIN</div><p class="small muted">The 4 numbers you use to get into the band app.</p><button type="button" class="btn wide" id="opOpen">Change my PIN</button></section>'}
 // ---- role pin: end ----
 function rolesHtml(){if(!window.__bandApi||!myRoles().includes("devotionsCoordinator"))return "";
   return '<div class="mgrp"><button type="button" class="mrow" id="dvOpen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M12 7v6M9 10h6"/></svg><span>Devotions Manager</span><span class="chev" aria-hidden="true">›</span></button></div>'}
@@ -906,7 +916,7 @@ function dvStatus(w,c){const e=(D.devoAck||{})[w],when=t=>t?whenText(new Date(t)
   return '<span class="pill wait">Pending</span> asked '+esc(when(e.sentAt))}
 function dvHist(w){const h=((D.devoAck||{})[w]||{}).hist||[];return h.length?'<small class="hist">'+h.slice().reverse().map(x=>'Was '+esc(x.p||"no one")+(x.ackAt?' (noted '+esc(whenText(new Date(x.ackAt)))+')':'')+', changed '+esc(whenText(new Date(x.endedAt)))).join("<br>")+'</small>':''}
 function dvRoster(){const W=dvWeds();
-  openSheet('<div class="dvtop"><h2>Devotions roster</h2><button type="button" class="btn navy" data-close>Done</button></div><div class="dvlist">'+W.map(i=>{const w=D.sessions[i],c=dvNow(w);
+  openSheet(pageTop("Devotions Manager","Menu")+'<div class="dvlist">'+W.map(i=>{const w=D.sessions[i],c=dvNow(w);
     const off=offOf(w);if(off&&!(c&&c.p))return '<div class="dvrow off"><div><b>'+esc(fmt(w,true))+'</b><small>'+esc(off.l)+' · no devotions needed</small></div><button type="button" class="btn" data-dvw="'+w+'">Change</button></div>';
     return '<div class="dvrow'+(off?' off':'')+'"><div><b>'+esc(fmt(w,true))+'</b>'+(off?'<small>'+esc(off.l)+'</small>':'')+'<small'+(c&&c.p?'':' class="no"')+'>'+esc(c&&c.p?c.p:"No one yet")+'</small><div class="dvst">'+dvStatus(w,c)+'</div>'+dvHist(w)+'</div><button type="button" class="btn" data-dvw="'+w+'">Change</button></div>'}).join("")
    +'</div><p class="sub">Shows the next '+W.length+' Wednesdays.</p>'+dvMoreHtml(),"dvroster")}
@@ -936,6 +946,7 @@ async function dvSave(w,send){const o=$("dvOther"),person=dvSel.none?"":dvSel.m?
   catch(e){showMsg("Not saved","Check your internet connection, then try again.");if($("dvGo"))dvGoLabel(w);else dvRoster()}}
 $("sheet").addEventListener("click",async e=>{const t=e.target;
   if(t.closest("#opOpen")){ownPinSheet("",false);return}
+  if(t.closest("[data-toset]")){sizeSheet();$("sheet").classList.add("still");return}   // back to Settings without sliding in again
   if(t.closest("#opGo")){const first=$("sheetInner").innerHTML.includes(">Later<"),b=$("opGo");const a=($("opIn1").value||"").trim(),c=($("opIn2").value||"").trim();
     b.disabled=true;b.textContent="Saving…";await ownPinSave(a,c,first);return}
   if(t.closest("#dvMore")){const y=$("sheetInner").scrollTop;dvN+=12;dvRoster();$("sheetInner").scrollTop=y;return}
@@ -973,16 +984,17 @@ function renderMenu(){const box=$("menuArea");if(!box)return;const m=me();
   box.innerHTML='<div class="mgrp">'+prof+'<button type="button" class="mrow" id="sizeBtn">'+IC_GEAR+'<span>Settings</span><span class="chev" aria-hidden="true">›</span></button></div>'+rolesHtml()}
 // Switch profile asks first: signing out forgets this phone's name (and PIN), so a stray tap shouldn't do it
 function switchSheet(){const m=me();if(!m){$("pick").hidden=false;return}
-  openSheet('<h2>Are you sure you want to sign out?</h2><p class="sub">This phone will forget '+esc(m.name)+'. You\'ll choose your name again'+(pinOkFor(who)?' and enter your PIN':'')+'.</p>'
+  openSheet(pageTop("Switch profile","Menu")+'<p><b>Are you sure you want to sign out?</b></p><p class="sub">This phone will forget '+esc(m.name)+'. You\'ll choose your name again'+(pinOkFor(who)?' and enter your PIN':'')+'.</p>'
    +(onAppsScript?'<a class="btn brass" href="'+esc(D.form.quick)+'" target="_top" id="signOut">Yes, sign out</a>':'<button type="button" class="btn brass" id="signOut">Yes, sign out</button>')
    +'<button type="button" class="btn" data-close>Cancel</button>',"switch")}
+const setCard=h=>'<section class="setcard">'+h+'</section>';
 function sizeSheet(){
   openSheet(pageTop("Settings","Menu")
    +pinSetHtml()
-   +'<div class="sec">Text size</div><div class="sizes">'+[[17,"Normal"],[20,"Large"],[23,"Larger"]].map(z=>'<button type="button" data-fs="'+z[0]+'" aria-pressed="'+(fs===z[0])+'"><span style="font-size:'+z[0]+'px">Aa</span><small>'+z[1]+'</small></button>').join("")+'</div>'
-   +'<div class="sec">Latest details</div><div class="setrow"><span class="small">'+esc(updText().replace(/^v[\d.]+ · /,""))+'</span><button type="button" class="btn" id="refreshNow">Refresh now</button></div><p class="small muted">The app also checks by itself every few minutes.'+(PC?'':' You can pull down from the top of the page to check too.')+'</p>'
-   +(window.__bandInstall&&window.__bandInstall.need()?'<div class="sec">Use as an app</div><div class="setrow"><span class="small">Put the band app on your Home Screen so it opens like an app and can send alerts.</span><button type="button" class="btn brass" id="instHow">Show me how</button></div>':'')
-   +(window.__bandPush&&!PC?'<div class="sec">Alerts on this phone</div><div id="alertsBox"><p class="muted">Checking…</p></div>':'')
+   +setCard('<div class="sec">Text size</div><div class="sizes">'+[[17,"Normal"],[20,"Large"],[23,"Larger"]].map(z=>'<button type="button" data-fs="'+z[0]+'" aria-pressed="'+(fs===z[0])+'"><span style="font-size:'+z[0]+'px">Aa</span><small>'+z[1]+'</small></button>').join("")+'</div>')
+   +setCard('<div class="sec">Check for Updates</div><div class="setrow"><span class="small" id="updNow" aria-live="polite">'+esc(updText().replace(/^v[\d.]+ · /,""))+'</span><button type="button" class="btn" id="refreshNow">Refresh now</button></div><p class="small muted">The app also checks by itself every few minutes.'+(PC?'':' You can pull down from the top of the page to check too.')+'</p>')
+   +(window.__bandInstall&&window.__bandInstall.need()?setCard('<div class="sec">Use as an app</div><div class="setrow"><span class="small">Put the band app on your Home Screen so it opens like an app and can send alerts.</span><button type="button" class="btn brass" id="instHow">Show me how</button></div>'):'')
+   +(window.__bandPush&&!PC?setCard('<div class="sec">Alerts on this phone</div><div id="alertsBox"><p class="muted">Checking…</p></div>'):'')
    +'<p class="small muted">'+(window.__bandAppVer?'App version '+esc(window.__bandAppVer):'Band page')+'</p>',"size");
   renderAlerts()}
 let alertBusy=false;
@@ -1094,7 +1106,7 @@ function updText(){const v=window.__bandAppVer?"v"+window.__bandAppVer+" · ":""
   if(st&&st.checked)return v+(st.offline?"Offline · ":"Updated ")+whenText(new Date(st.checked));
   const t=new Date(D.updatedAt||"");return v+(isNaN(t)?(D.updated?"Updated "+D.updated:""):"Updated "+whenText(t))}
 (function renderTop(){setTop();setInterval(setTop,60000)})();
-function refreshNow(){if(window.__bandRefresh){window.__bandRefresh();closeSheet();showMsg("Checking for updates…")}else if(onAppsScript){window.top.location.href=D.form.quick}else location.reload()}
+function refreshNow(){if(window.__bandRefresh){const u=$("updNow"),b=$("refreshNow");if(u)u.textContent="Checking for updates…";if(b){b.disabled=true;setTimeout(()=>{b.disabled=false},30000)}window.__bandRefresh()}else if(onAppsScript){window.top.location.href=D.form.quick}else location.reload()}
 
 if(queue&&!queue.failed)setTimeout(flush,800);   // left over from last time the app was open
 // one-off: send notes this phone already marked Noted before the Bandmaster's record existed
@@ -1104,14 +1116,16 @@ setTimeout(flushNoted,1200);loadNotedFor();
 renderAll();
 window.__bandSafe=()=>!queue&&$("sheet").hidden&&$("pick").hidden;
 window.__bandToast=(t,sub)=>showMsg(t,sub);
-window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===who)){who="";$("pick").hidden=false}tidy();renderAll()};
+window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===who)){who="";$("pick").hidden=false}tidy();renderAll();setUpd()};
+// Settings > Check for Updates: show the result on the page itself when a check finishes
+function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||{};if(!u||st.checking)return;u.textContent=updText().replace(/^v[\d.]+ · /,"");if(b)b.disabled=false}
 })();
 };</script>
 <script>
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="6.3";
+window.__bandAppVer="6.4";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
