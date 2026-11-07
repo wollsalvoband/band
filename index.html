@@ -38,12 +38,12 @@ button,input,select{font:inherit;color:inherit}
 .btn:disabled{opacity:.5}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 /* header */
-.hdr{background:var(--surface);border-bottom:1px solid var(--line);padding:max(10px,env(safe-area-inset-top,0px)) 16px 12px}
-@media (display-mode:standalone){html{background:var(--surface)}.hdr{padding-top:calc(env(safe-area-inset-top,0px) + 12px)}}
+.hdr{background:var(--surface);border-bottom:1px solid var(--line);padding:max(6px,env(safe-area-inset-top,0px)) 16px 6px}
+@media (display-mode:standalone){html{background:var(--surface)}.hdr{padding-top:calc(env(safe-area-inset-top,0px) + 4px)}}
 .hdr-in{max-width:680px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .brand{display:flex;flex-direction:column;min-width:0}
 .brand b{font:800 19px/1.15 var(--f-body);white-space:nowrap}
-.brand span{font-size:13.5px;color:var(--muted)}
+.brand span{font-size:13.5px;line-height:1.3;color:var(--muted)}
 .brand span.stale{color:var(--wait);font-weight:700}
 .updbar{background:var(--brass-soft);border-bottom:1px solid var(--line);padding:12px 16px}
 .updin{max-width:680px;margin:0 auto;display:grid;gap:10px}
@@ -56,7 +56,8 @@ ul.ticks input:disabled+.tk{opacity:.5}
 .ib svg{width:24px;height:24px}
 .ib:disabled{opacity:.35;cursor:default}
 /* views */
-.wrap{max-width:680px;margin:0 auto;padding:16px 16px 28px;display:grid;gap:14px}
+.wrap{max-width:680px;margin:0 auto;padding:10px 16px 28px;display:grid;gap:14px}
+#noteTop:empty{display:none}   /* no gap above This week when there's no new announcement */
 .wrap>*{min-width:0}
 h1.pg{margin:0;font:800 1.6rem/1.15 var(--f-body)}
 .sec{font-weight:700;color:var(--muted);margin-top:4px}
@@ -71,7 +72,6 @@ details.fold .fb{padding:0 14px 14px}
 details.fold .upd{display:block;font-weight:400;font-size:.92rem;color:var(--muted)}
 details.fold .bmw{white-space:pre-wrap;overflow-wrap:anywhere;font-size:1.05rem}
 details.fold .bmw.h{white-space:normal}details.fold .bmw p{margin:0 0 .8em}details.fold .bmw p:last-child{margin-bottom:0}
-.brand b#hiTop{font-size:21px}
 .dvban{appearance:none;width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;background:var(--brass-soft);border:2px solid var(--brass);border-radius:16px;padding:14px;font:800 1.05rem var(--f-body);color:var(--ink);cursor:pointer;min-height:56px}
 .dvban small{display:block;font-weight:400;color:var(--muted)}.dvban .chev{font-size:1.6rem;color:var(--brass)}
 .dvban.none{background:var(--surface);border-color:var(--line);color:var(--muted);cursor:default;font-weight:700}
@@ -216,8 +216,8 @@ ol.mp .mpd{font-weight:400;margin-top:3px;white-space:pre-line}
 .leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.88rem;color:var(--muted)}
 .leg i{display:inline-block;width:15px;height:15px;border-radius:4px;vertical-align:-2px;margin-right:6px}
 /* tab bar */
-.tbar{position:fixed;left:0;right:0;bottom:0;z-index:12;display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(8px + env(safe-area-inset-bottom,0px))}
-.tbar button{appearance:none;border:0;background:none;color:var(--muted);display:grid;justify-items:center;gap:2px;padding:6px 2px;min-height:62px;font:700 14.5px var(--f-body);cursor:pointer;border-radius:12px;position:relative;-webkit-tap-highlight-color:transparent}
+.tbar{position:fixed;left:0;right:0;bottom:0;z-index:12;display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(8px + env(safe-area-inset-bottom,0px))}
+.tbar button{appearance:none;border:0;background:none;color:var(--muted);display:grid;justify-items:center;gap:2px;padding:6px 2px;min-height:62px;font:700 13px var(--f-body);cursor:pointer;border-radius:12px;position:relative;-webkit-tap-highlight-color:transparent}
 .tbar button svg{width:28px;height:28px}
 .tbar button[aria-current="page"]{color:var(--navy);background:color-mix(in srgb,var(--navy) 13%,transparent)}
 .badge{position:absolute;top:2px;left:calc(50% + 6px);background:var(--bad);color:#fff;border-radius:999px;font-size:.78rem;min-width:22px;height:22px;display:grid;place-items:center;padding:0 6px}
@@ -243,7 +243,33 @@ ol.mp .mpd{font-weight:400;margin-top:3px;white-space:pre-line}
 .sheet input[type=text],.sheet input[type=date],.sheet select,.sheet textarea{width:100%;min-height:54px;font-size:1.05rem;border:2px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--surface)}
 .sheet textarea{display:block;font:400 1.05rem/1.4 var(--f-body);color:var(--ink);resize:vertical;min-height:84px}
 .fl .opt{font-weight:400;color:var(--muted)}
-@media (max-width:360px){.tbar button{font-size:12.5px}}
+@media (max-width:360px){.tbar button{font-size:11.5px}}
+/* Menu tab: grouped rows like a phone's settings list */
+.mgrp{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.mrow{appearance:none;width:100%;display:flex;align-items:center;gap:14px;min-height:64px;padding:10px 16px;border:0;border-top:1px solid var(--line);background:none;color:var(--ink);font:600 1.1rem var(--f-body);text-align:left;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mrow:first-child{border-top:0}
+.mrow>svg{width:28px;height:28px;flex:none}
+.mrow>span{flex:1;min-width:0}
+.mrow small{display:block;color:var(--muted);font-size:.9rem;font-weight:500}
+.mrow .chev{flex:none;color:var(--muted);font-size:1.6rem;line-height:1}
+.mrow small.inst2{color:var(--ink);font-weight:700}
+.mpills{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0 3px}
+.mpill{background:var(--brass-soft);color:var(--ink);border-radius:999px;padding:2px 10px;font-size:.82rem;font-weight:700}
+/* Settings opens as a page in the Menu's space: the header and the tab bar stay, it slides in from the right */
+.sheet.page{background:none;top:var(--pgTop,0px);bottom:var(--pgBot,0px);align-items:stretch;z-index:11}
+.sheet.page .inner{max-width:none;border-radius:0;max-height:none;height:100%;background:var(--bg);padding:12px 16px 24px;align-content:start}
+.sheet.page .inner>*{width:100%;max-width:680px;margin-left:auto;margin-right:auto}
+.pgtop{display:flex;align-items:center;gap:6px}
+.pgtop h2{flex:1}
+.back{appearance:none;border:0;background:none;color:var(--ink);width:48px;height:48px;margin-left:-10px;display:grid;place-items:center;cursor:pointer;border-radius:12px}
+.back svg{width:28px;height:28px}
+.leave{position:fixed;inset:0;z-index:30;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center}
+.leave[hidden]{display:none}
+.sheet.page.lv{z-index:30}
+.sheet.page .inner>.leave{max-width:none;margin:0}
+.leavecard{background:var(--surface);width:100%;max-width:600px;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));display:grid;gap:12px}
+@media (prefers-reduced-motion:no-preference){.sheet.page .inner{animation:fromR .22s ease-out}@keyframes fromR{from{transform:translateX(100%)}}}
+.mrow .mav{width:52px;height:52px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--navy);color:var(--on-navy);font-weight:800;font-size:1.15rem}
 .fl{display:grid;gap:6px;font-weight:700}
 .two{display:grid;grid-template-columns:1fr;gap:12px}
 .two>*{min-width:0}
@@ -281,8 +307,8 @@ label.f{display:grid;gap:6px;font-weight:700}
 .pc body{padding-bottom:0}
 .pc .hdr-in,.pc .updin{max-width:1040px}
 .pc .wrap{max-width:1040px;padding:20px 24px 40px}
-.pc #v-msg{max-width:760px}
-.pc .tbar{position:sticky;top:0;bottom:auto;border-top:0;border-bottom:1px solid var(--line);grid-template-columns:repeat(3,auto);justify-content:center;gap:10px;padding:8px 16px}
+.pc #v-msg,.pc #v-menu{max-width:760px}
+.pc .tbar{position:sticky;top:0;bottom:auto;border-top:0;border-bottom:1px solid var(--line);grid-template-columns:repeat(4,auto);justify-content:center;gap:10px;padding:8px 16px}
 .pc .tbar button{grid-auto-flow:column;align-items:center;gap:10px;min-height:52px;padding:8px 22px;font-size:16px}
 .pc .tbar button svg{width:24px;height:24px}
 .pc #week,.pc #myarea{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
@@ -292,7 +318,7 @@ label.f{display:grid;gap:6px;font-weight:700}
 .pc .toast{bottom:24px}
 }
 </style>
-<header class="hdr"><div class="hdr-in"><div class="brand"><b id="hiTop">Wollongong Salvos</b><span id="tbupd"></span></div><div class="hbtns"><button class="ib" id="sizeBtn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div></div></header>
+<header class="hdr"><div class="hdr-in"><div class="brand"><span id="tbupd"></span></div><div class="hbtns"></div></div></header>
 <div id="updbar" class="updbar" role="status" hidden><div class="updin"><div><b>A new version is ready</b><span>Tap below to get the latest. It takes a moment.</span></div><button type="button" class="btn brass wide" id="updGo">Update now</button></div></div>
 
 <main>
@@ -303,12 +329,16 @@ label.f{display:grid;gap:6px;font-weight:700}
 </div>
 <div class="wrap" id="v-dates" hidden>
   <div class="dhead"><h1 class="pg">My dates</h1><div class="seg" role="group" aria-label="How to show your dates"><button type="button" data-view="list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>List</button><button type="button" data-view="cal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Calendar</button></div></div>
-  <button class="btn navy wide" id="rangeBtn" type="button">Away for a few weeks?</button>
+  <div class="mgrp"><button class="mrow" id="rangeBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/></svg><span>Update Multiple Dates</span><span class="chev" aria-hidden="true">›</span></button></div>
   <div id="myarea" style="display:grid;gap:12px"></div>
 </div>
 <div class="wrap" id="v-msg" hidden>
   <h1 class="pg">Announcements</h1>
   <div id="msgs" style="display:grid;gap:12px"></div>
+</div>
+<div class="wrap" id="v-menu" hidden>
+  <h1 class="pg">Menu</h1>
+  <div id="menuArea" style="display:grid;gap:18px"></div>
 </div>
 </main>
 
@@ -316,6 +346,7 @@ label.f{display:grid;gap:6px;font-weight:700}
   <button type="button" data-tab="week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>This week</button>
   <button type="button" data-tab="dates"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>My dates</button>
   <button type="button" data-tab="msg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l6 4V6L7 10z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg>Announcements<span class="badge" id="mBadge" hidden></span></button>
+  <button type="button" data-tab="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menu</button>
 </nav>
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="pick" class="pick" hidden><div class="pickcard"><h1><small>Wollongong Salvos</small>Who are you?</h1><p class="muted">Choose your name once. This phone will remember it.</p><label class="f">Your name<select id="who"><option value="">Choose your name</option></select></label><button class="btn send" id="pickGo" disabled>Continue</button><p class="err" id="pickErr" role="alert" hidden></p></div></div>
@@ -653,10 +684,10 @@ function renderNotes(){const {fresh,old}=notesSplit();
   $("noteTop").innerHTML=fresh.length?noteHtml(fresh[0],true)+(fresh.length>1?'<p class="more">'+(fresh.length-1)+' more in Announcements</p>':''):'';
   $("msgs").innerHTML=(fresh.map(n=>noteHtml(n,true)).join("")+old.map(n=>noteHtml(n,false)).join(""))||'<p class="muted">No announcements from the Bandmaster yet.</p>';
   const b=$("mBadge");b.hidden=!fresh.length;b.textContent=fresh.length}
-function renderTabs(){for(const v of ["week","dates","msg"])$("v-"+v).hidden=v!==tab;
+function renderTabs(){for(const v of ["week","dates","msg","menu"])$("v-"+v).hidden=v!==tab;
   for(const b of document.querySelectorAll("#tbar button"))if(b.dataset.tab===tab)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")}
-function renderAll(){mergeX();renderTabs();renderNotes();renderWeek();renderDates();renderToast()}
-function setTab(t){tab=t;renderTabs();window.scrollTo(0,0)}
+function renderAll(){mergeX();renderTabs();renderNotes();renderWeek();renderDates();renderMenu();renderToast()}
+function setTab(t){tab=t;if(sheetKind==="size"||sheetKind==="range")closeSheet();if(t==="menu")renderMenu();renderTabs();window.scrollTo(0,0)}
 let hiddenAt=0;
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){hiddenAt=Date.now();return}
   if(hiddenAt&&Date.now()-hiddenAt>300000){dview="list";shown=10;calM=null;calSel=null;calPast=null;renderDates();setTab("week")}hiddenAt=0});
@@ -701,7 +732,14 @@ window.addEventListener("pagehide",()=>{if(queue&&!queue.failed)flush()});
 
 // ----- sheets -----
 let sheetKind=null,reason="",pendingSet=null,rangeSel=null;
-function openSheet(html,k){sheetKind=k;$("sheetInner").innerHTML=html;$("sheet").hidden=false}
+// a page's top line: a back arrow (leaves without saving) and its title
+const pageTop=(title,back,attr)=>'<div class="pgtop"><button type="button" class="back" '+(attr||"data-close")+' aria-label="Back to '+back+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><h2>'+title+'</h2></div>';
+// Settings and Update Multiple Dates are pages in the tab's space: it sits between the header and the tab bar (below both on a PC)
+function pageFit(sh){window.scrollTo(0,0);const hd=document.querySelector(".hdr"),tb=$("tbar"),ub=$("updbar");
+  const atBot=!!tb&&getComputedStyle(tb).position==="fixed";
+  let top=hd?hd.getBoundingClientRect().bottom:0;if(ub&&!ub.hidden)top=Math.max(top,ub.getBoundingClientRect().bottom);if(tb&&!atBot)top=Math.max(top,tb.getBoundingClientRect().bottom);
+  sh.style.setProperty("--pgTop",top+"px");sh.style.setProperty("--pgBot",(atBot?tb.offsetHeight:0)+"px")}
+function openSheet(html,k){sheetKind=k;const sh=$("sheet");const pg=k==="size"||k==="range";if(sh.classList){sh.classList.toggle("page",pg);sh.classList.remove("lv")}if(pg)pageFit(sh);$("sheetInner").innerHTML=html;$("sheet").hidden=false}
 function closeSheet(){const c=sheetKind==="dvpin"&&pinCtx;pinCtx=null;$("sheet").hidden=true;$("sheetInner").innerHTML="";sheetKind=null;if(c&&c.cancel)c.cancel()}
 const REASONS=["Holidays","Work","Unwell","Family","Other"];
 function reasonsHtml(){return '<div class="reasons">'+REASONS.map(r=>'<button type="button" data-reason="'+r+'" aria-pressed="'+(reason===r)+'">'+r+'</button>').join("")+'</div>'+(reason==="Other"?'<input type="text" id="rOther" maxlength="60" placeholder="Type a short reason (optional)">':'')}
@@ -713,15 +751,19 @@ function noteVal(){const n=$("bNote");return n?n.value.replace(/\s+/g," ").trim(
 function reasonVal(){if(reason!=="Other")return reason;const o=$("rOther");return (o&&o.value.trim())||"Other"}
 function rangeSheet(){const m=me();if(!m)return;reason="";
   const t=new Date(),f=iso(t),l=iso(new Date(t.getFullYear(),t.getMonth(),t.getDate()+14));
-  openSheet('<h2>When are you away?</h2><div class="two"><label class="fl">First day away<input type="date" id="rgF" value="'+f+'"></label><label class="fl">Last day away<input type="date" id="rgT" value="'+l+'"></label></div><div id="rgList"></div><div class="sec">Reason (optional)</div><div id="rbox">'+reasonsHtml()+'</div>'+noteBox("away")+'<button type="button" class="btn brass" data-rgo>Submit to Bandmaster for noting</button><button type="button" class="btn" data-close>Cancel the change</button>',"range");
-  rangeSel=null;rangeList()}
+  openSheet(pageTop("Update Multiple Dates","My dates","data-rgback")+'<div class="two"><label class="fl">First day away<input type="date" id="rgF" value="'+f+'"></label><label class="fl">Day you\'re back<input type="date" id="rgT" value="'+l+'"></label></div><div id="rgList"></div><div class="sec">Reason (optional)</div><div id="rbox">'+reasonsHtml()+'</div>'+noteBox("away")+'<button type="button" class="btn brass" data-rgo>Submit to Bandmaster for noting</button><button type="button" class="btn" data-close>Cancel the change</button>'
+   +'<div class="leave" id="rgLeave" hidden><div class="leavecard" role="alertdialog" aria-labelledby="rgLvT"><h2 id="rgLvT">Leave without saving?</h2><p class="sub">The dates you entered won\'t be sent to the Bandmaster.</p><button type="button" class="btn brass" data-close>Leave without saving</button><button type="button" class="btn" data-rgstay>Keep editing</button></div></div>',"range");
+  rangeSel=null;rangeDirty=false;rangeList()}
+// the back arrow on Update Multiple Dates: straight out if nothing was changed, otherwise ask first
+let rangeDirty=false;
+function rangeBack(){if(rangeDirty&&$("rgLeave")){$("rgLeave").hidden=false;$("sheet").classList.add("lv")}else closeSheet()}
 function rangeList(){const m=me(),f=$("rgF").value,t=$("rgT").value;const box=$("rgList");if(!box)return;
   const a=f&&t&&t<f?t:f,b=f&&t&&t<f?f:t;
-  const ds=upcoming().filter(i=>{const s=D.sessions[i].slice(0,10);return a&&b&&s>=a&&s<=b});
+  const ds=upcoming().filter(i=>{const s=D.sessions[i].slice(0,10);return a&&b&&s>=a&&s<b});   // the day they're back isn't missed
   if(!rangeSel)rangeSel={};
   if(!ds.length){box.innerHTML='<p class="muted">No band dates between those days.</p>';updRangeBtn(0);return}
-  box.innerHTML='<p class="sub">Untick any you can still make.</p><ul class="ticks">'+ds.map(i=>{const s=D.sessions[i],e=eff(m,i),done=e.want==="away";
-    if(rangeSel[s]===undefined)rangeSel[s]=!done;
+  box.innerHTML='<p class="sub">Select the dates you are away</p><ul class="ticks">'+ds.map(i=>{const s=D.sessions[i],e=eff(m,i),done=e.want==="away";
+    if(rangeSel[s]===undefined)rangeSel[s]=true;   // all ticked to start
     return '<li><label><input type="checkbox" data-rg="'+s+'"'+(rangeSel[s]?' checked':'')+(done?' disabled':'')+'><span class="tk"><b>'+esc(fmt(s,true))+'</b><small>'+(offOf(s)?esc(offOf(s).l):kindLabel(s))+(done?(e.st==="usual"?' · not usually on '+(kind(s)==="sun"?"Sundays":"Wednesdays"):' · already away'):'')+'</small></span></label></li>'}).join("")+'</ul>';
   updRangeBtn(ds.filter(i=>rangeSel[D.sessions[i]]&&eff(m,i).want!=="away").length)}
 function updRangeBtn(n){const b=document.querySelector("[data-rgo]");if(!b)return;b.disabled=!n;b.textContent=n?"Submit to Bandmaster for noting ("+n+" date"+(n>1?"s":"")+")":"No dates picked"}
@@ -847,7 +889,7 @@ function pinSetHtml(){if(!window.__bandApi||!pinOkFor(who))return "";
   return '<div class="sec">Your PIN</div><p class="small muted">The 4 numbers you use to get into the band app.</p><button type="button" class="btn wide" id="opOpen">Change my PIN</button>'}
 // ---- role pin: end ----
 function rolesHtml(){if(!window.__bandApi||!myRoles().includes("devotionsCoordinator"))return "";
-  return '<div class="sec">Devotions Coordinator</div><button type="button" class="btn navy wide" id="dvOpen">Devotions roster</button>'}
+  return '<div class="mgrp"><button type="button" class="mrow" id="dvOpen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M12 7v6M9 10h6"/></svg><span>Devotions Manager</span><span class="chev" aria-hidden="true">›</span></button></div>'}
 const dvPin=()=>pinOkFor(who)?pinState().pin:"";
 let dvN=12;   // Wednesdays shown in the devotions roster; Show more dates adds 12 more
 function dvWeds(){return upcoming().filter(i=>kind(D.sessions[i])==="wed").slice(0,dvN)}
@@ -893,7 +935,6 @@ async function dvSave(w,send){const o=$("dvOther"),person=dvSel.none?"":dvSel.m?
     showMsg("Not saved",dvErr(r));if($("dvGo"))dvGoLabel(w);else dvRoster()}
   catch(e){showMsg("Not saved","Check your internet connection, then try again.");if($("dvGo"))dvGoLabel(w);else dvRoster()}}
 $("sheet").addEventListener("click",async e=>{const t=e.target;
-  if(t.closest("#dvOpen")){dvN=12;dvRoster();return}
   if(t.closest("#opOpen")){ownPinSheet("",false);return}
   if(t.closest("#opGo")){const first=$("sheetInner").innerHTML.includes(">Later<"),b=$("opGo");const a=($("opIn1").value||"").trim(),c=($("opIn2").value||"").trim();
     b.disabled=true;b.textContent="Saving…";await ownPinSave(a,c,first);return}
@@ -918,15 +959,31 @@ function dvAskSheet(w){openSheet('<h2>Ask '+esc(dvSel.p)+' to tap Noted?</h2><p 
 function dvFilter(){const q=($("dvQ")||{}).value||"";const n=q.trim().toLowerCase();
   document.querySelectorAll(".dvopt[data-n]").forEach(b=>{b.hidden=!!n&&!b.dataset.n.includes(n)})}
 $("sheet").addEventListener("input",e=>{if(e.target.id==="dvQ")dvFilter();if(e.target.id==="dvOther"){const g=$("dvGo");if(g)dvGoLabel(g.dataset.w)}});
-function sizeSheet(){const m=me();const nm=m?(m.short||m.name.split(" ")[0]):"";
-  openSheet('<h2>Settings</h2>'
-   +(m?'<div class="sec">Your name</div><div class="setrow"><b>'+esc(m.name)+'</b>'+(onAppsScript?'<a class="lnk" href="'+esc(D.form.quick)+'" target="_top" id="signOut">Not '+esc(nm)+'? Switch</a>':'<button type="button" class="lnk" id="signOut">Not '+esc(nm)+'? Switch</button>')+'</div>':'')
-   +pinSetHtml()+rolesHtml()
+// Menu tab: who's using this phone (tap to switch), Settings, then any role tools (Devotions Manager)
+const IC_GEAR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+// a role's key from the Hub as members read it: "devotionsCoordinator" -> "Devotions Coordinator"
+const ROLE_NAMES={bandmaster:"Bandmaster",devotionsCoordinator:"Devotions Coordinator",testUser:"Test user"};
+const roleName=k=>ROLE_NAMES[k]||String(k||"").replace(/([a-z])([A-Z])/g,"$1 $2").replace(/^./,c=>c.toUpperCase());
+function renderMenu(){const box=$("menuArea");if(!box)return;const m=me();
+  const ini=m?m.name.split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase():"?";
+  const rl=m?myRoles().map(roleName).filter(Boolean):[];
+  const inner='<span class="mav" aria-hidden="true">'+esc(ini)+'</span><span><b>'+esc(m?m.name:"Choose your name")+'</b>'+(m&&m.part?'<small class="inst2">'+esc(m.part)+'</small>':'')
+    +(rl.length?'<span class="mpills">'+rl.map(x=>'<span class="mpill">'+esc(x)+'</span>').join("")+'</span>':'')+'<small>Switch profile</small></span><span class="chev" aria-hidden="true">›</span>';
+  const prof='<button type="button" class="mrow" id="switchAsk">'+inner+'</button>';
+  box.innerHTML='<div class="mgrp">'+prof+'<button type="button" class="mrow" id="sizeBtn">'+IC_GEAR+'<span>Settings</span><span class="chev" aria-hidden="true">›</span></button></div>'+rolesHtml()}
+// Switch profile asks first: signing out forgets this phone's name (and PIN), so a stray tap shouldn't do it
+function switchSheet(){const m=me();if(!m){$("pick").hidden=false;return}
+  openSheet('<h2>Are you sure you want to sign out?</h2><p class="sub">This phone will forget '+esc(m.name)+'. You\'ll choose your name again'+(pinOkFor(who)?' and enter your PIN':'')+'.</p>'
+   +(onAppsScript?'<a class="btn brass" href="'+esc(D.form.quick)+'" target="_top" id="signOut">Yes, sign out</a>':'<button type="button" class="btn brass" id="signOut">Yes, sign out</button>')
+   +'<button type="button" class="btn" data-close>Cancel</button>',"switch")}
+function sizeSheet(){
+  openSheet(pageTop("Settings","Menu")
+   +pinSetHtml()
    +'<div class="sec">Text size</div><div class="sizes">'+[[17,"Normal"],[20,"Large"],[23,"Larger"]].map(z=>'<button type="button" data-fs="'+z[0]+'" aria-pressed="'+(fs===z[0])+'"><span style="font-size:'+z[0]+'px">Aa</span><small>'+z[1]+'</small></button>').join("")+'</div>'
    +'<div class="sec">Latest details</div><div class="setrow"><span class="small">'+esc(updText().replace(/^v[\d.]+ · /,""))+'</span><button type="button" class="btn" id="refreshNow">Refresh now</button></div><p class="small muted">The app also checks by itself every few minutes.'+(PC?'':' You can pull down from the top of the page to check too.')+'</p>'
    +(window.__bandInstall&&window.__bandInstall.need()?'<div class="sec">Use as an app</div><div class="setrow"><span class="small">Put the band app on your Home Screen so it opens like an app and can send alerts.</span><button type="button" class="btn brass" id="instHow">Show me how</button></div>':'')
    +(window.__bandPush&&!PC?'<div class="sec">Alerts on this phone</div><div id="alertsBox"><p class="muted">Checking…</p></div>':'')
-   +'<p class="small muted">'+(window.__bandAppVer?'App version '+esc(window.__bandAppVer):'Band page')+'</p><button type="button" class="btn navy" data-close>Done</button>',"size");
+   +'<p class="small muted">'+(window.__bandAppVer?'App version '+esc(window.__bandAppVer):'Band page')+'</p>',"size");
   renderAlerts()}
 let alertBusy=false;
 function renderAlerts(msg){const box=$("alertsBox");if(!box||!window.__bandPush)return;
@@ -962,11 +1019,17 @@ document.addEventListener("click",e=>{
   const dg=t.closest("[data-devogo]");if(dg){devoGo(dg.dataset.devogo);return}
   if(t.closest("#rangeBtn")){rangeSheet();return}
   if(t.closest("#sizeBtn")){sizeSheet();return}
+  if(t.closest("#switchAsk")){switchSheet();return}
+  if(t.closest("#dvOpen")){dvN=12;dvRoster();return}
+  const so=t.closest("#signOut");if(so){store.set("band.who","");if(window.__bandPush)window.__bandPush.disable().catch(()=>{});try{localStorage.removeItem("band.pagepw")}catch(x){}
+    if(!onAppsScript){e.preventDefault();who="";$("who").value="";$("pickGo").disabled=true;closeSheet();$("pick").hidden=false;renderAll()}return}
   if(t.closest("[data-undo]")){undo();return}
   if(t.closest("[data-retry]")){retry();return}
 });
 $("sheet").addEventListener("click",e=>{const t=e.target;
   if(t===$("sheet")||t.closest("[data-close]")){closeSheet();return}
+  if(t.closest("[data-rgback]")){rangeBack();return}
+  if(t.closest("[data-rgstay]")){$("rgLeave").hidden=true;$("sheet").classList.remove("lv");return}
   if(t.closest("#recSnd")){recSound();return}
   const r=t.closest("button[data-reason]");if(r){const keep=$("rOther")?$("rOther").value:"";reason=reason===r.dataset.reason?"":r.dataset.reason;$("rbox").innerHTML=reasonsHtml();if($("rOther")){$("rOther").value=keep;$("rOther").focus()}return}
   if(t.closest("[data-confirm]")&&pendingSet){const m=me(),s=D.sessions[pendingSet.i];const it={date:s,want:pendingSet.want,reason:pendingSet.want==="away"?reasonVal():""},nt=noteVal();closeSheet();pendingSet=null;enqueue(m,[it],nt);return}
@@ -975,13 +1038,11 @@ $("sheet").addEventListener("click",e=>{const t=e.target;
   const al=t.closest("button[data-alerts]");if(al&&window.__bandPush){if(al.dataset.alerts==="on")alertsDo(()=>window.__bandPush.enable({notes:true,music:true,noted:true}),"Alerts are on. We've sent you a test alert.");else alertsDo(()=>window.__bandPush.disable(),"Alerts are off.");return}
   if(t.closest("#refreshNow")){refreshNow();return}
   if(t.closest("#instHow")&&window.__bandInstall){closeSheet();window.__bandInstall.show();return}
-  const so=t.closest("#signOut");if(so){store.set("band.who","");if(window.__bandPush)window.__bandPush.disable().catch(()=>{});try{localStorage.removeItem("band.pagepw")}catch(x){}
-    if(!onAppsScript){e.preventDefault();who="";$("who").value="";$("pickGo").disabled=true;closeSheet();$("pick").hidden=false;renderAll()}}
 });
 $("sheet").addEventListener("change",e=>{const pf=e.target.closest("input[data-pref]");if(pf&&window.__bandPush){alertsDo(()=>window.__bandPush.setPrefs(prefsNow()),"Saved.");return}
-  const c=e.target.closest("input[data-rg]");if(c){rangeSel[c.dataset.rg]=c.checked;rangeList();return}
-  if(e.target.id==="rgF"||e.target.id==="rgT"){rangeSel=null;rangeList()}});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)closeSheet()});
+  const c=e.target.closest("input[data-rg]");if(c){rangeDirty=true;rangeSel[c.dataset.rg]=c.checked;rangeList();return}
+  if(e.target.id==="rgF"||e.target.id==="rgT"){rangeDirty=true;rangeSel=null;rangeList()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden){if(sheetKind==="range")rangeBack();else closeSheet()}});
 
 // ----- who are you (once per phone) -----
 if(store.get("band.whoSince","")!==(D.pwSince||"")){who="";store.set("band.who","")}
@@ -1024,8 +1085,9 @@ function whenText(t){if(isNaN(t))return "";const h=t.getHours(),mi=String(t.getM
   return t.toDateString()===new Date().toDateString()?tm:DOW[t.getDay()]+" "+t.getDate()+" "+MON[t.getMonth()]+" "+tm}
 function isStale(){const st=window.__bandStatus;return !!(st&&st.checked&&!st.checking&&Date.now()-st.checked>3600000)}
 // the header: "Hi Alex" big once a name is chosen, with the band name and the update time on the small line
-function setTop(){const el=$("tbupd"),m=me();$("hiTop").textContent=m?"Hi "+(m.short||m.name.split(" ")[0]):"Wollongong Salvos";
-  el.textContent=(m?"Wollongong Salvos · ":"")+updText();el.classList.toggle("stale",isStale())}
+function setTop(){const el=$("tbupd"),m=me();
+  const nm=m?m.name.split(" ").filter(Boolean):[];   // "Sam T." leaves room for the rest of the line
+  el.textContent=(nm.length?nm[0]+(nm.length>1?" "+nm[nm.length-1][0]:"")+" · ":"")+"Wollongong Salvos Band App · "+updText();el.classList.toggle("stale",isStale())}
 function updText(){const v=window.__bandAppVer?"v"+window.__bandAppVer+" · ":"";const st=window.__bandStatus;
   if(st&&st.checking)return v+"Checking…";
   if(st&&st.checked&&isStale())return v+"Not updated since "+whenText(new Date(st.checked));
@@ -1049,7 +1111,7 @@ window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="6.2";
+window.__bandAppVer="6.3";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
