@@ -140,6 +140,8 @@ article.dc.hl{outline:4px solid var(--brass);outline-offset:2px}
 .dvopt{appearance:none;min-height:54px;border:2px solid var(--line);border-radius:12px;padding:10px 14px;font:700 1.05rem var(--f-body);color:var(--ink);background:var(--surface);display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;cursor:pointer}
 .dvbar{position:sticky;top:0;z-index:2;margin:-20px -16px 0;padding:20px 16px 12px;background:var(--surface);border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .dvbar .btn{min-height:60px;font-size:1.15rem}
+.dvfoot{position:sticky;bottom:-24px;z-index:2;margin-bottom:-24px;padding:10px 0 24px;background:var(--bg);border-top:1px solid var(--line)}
+.dvfoot .btn{width:100%;min-height:60px;font-size:1.15rem}
 /* v5.6: the Devotions roster's Done stays at the top while the dates scroll */
 .dvtop{position:sticky;top:0;z-index:2;margin:-20px -16px 0;padding:20px 16px 12px;background:var(--surface);border-bottom:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
 .dvtop .btn{min-height:60px;min-width:120px;font-size:1.15rem}
@@ -324,6 +326,16 @@ label.f{display:grid;gap:6px;font-weight:700}
 .pc .sheet .inner{border-radius:22px;max-width:560px;max-height:85vh}
 .pc .toast{bottom:24px}
 }
+/* Wide PC windows (class "dk", set in the script with the same 1024px check): pages with a back arrow open as a
+   side panel beside the tab, so the tab stays in view; the other boxes are centred dialogs. Below 1024px nothing here applies. */
+@media (min-width:1024px){
+:root.dk{--side:clamp(420px,38vw,560px)}
+.dk .sheet.page{left:auto;width:var(--side);border-left:1px solid var(--line);box-shadow:-12px 0 32px rgba(0,0,0,.14)}
+.dk.side .wrap{position:relative;left:calc(var(--side) / -2);max-width:min(1040px,calc(100vw - var(--side) - 48px))}
+.dk .leave{align-items:center}
+.dk .leavecard{border-radius:22px;max-width:480px;padding:20px}
+}
+@media (min-width:1024px) and (max-width:1279px){.dk.side #week,.dk.side #myarea{grid-template-columns:minmax(0,1fr)}}
 </style>
 <header class="hdr"><div class="hdr-in"><div class="brand"><span id="tbupd"></span></div><div class="hbtns"></div></div></header>
 <div id="updbar" class="updbar" role="status" hidden><div class="updin"><div><b>A new version is ready</b><span>Tap below to get the latest. It takes a moment.</span></div><button type="button" class="btn brass wide" id="updGo">Update now</button></div></div>
@@ -403,6 +415,11 @@ const $=id=>document.getElementById(id);
 const PC=!/iphone|ipad|ipod|android/i.test(navigator.userAgent)&&!(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)&&!!(window.matchMedia&&matchMedia("(hover:hover) and (pointer:fine)").matches);
 window.__bandPC=PC;
 if(PC){document.documentElement.classList.add("pc");const tb=$("tbar"),hd=document.querySelector(".hdr");if(tb&&hd)hd.after(tb)}
+// a wide PC window (1024px and up, the same as the CSS) gets class "dk": side panel and centred dialogs
+const DKQ=PC&&window.matchMedia?matchMedia("(min-width:1024px)"):null;
+function dkSet(){const on=!!DKQ&&DKQ.matches,h=document.documentElement;h.classList.toggle("dk",on);
+  const sh=$("sheet");if(!on){h.classList.remove("side");return}if(sh&&!sh.hidden&&sh.classList.contains("page")){h.classList.add("side");pageEdges(sh)}}
+if(DKQ){dkSet();if(DKQ.addEventListener)DKQ.addEventListener("change",dkSet)}
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],MONL=["January","February","March","April","May","June","July","August","September","October","November","December"],DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],DOWL=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 // a session is a date (a Wednesday or Sunday), or an extra band event's key, "<date>_<event id>" (kind "ev")
@@ -696,7 +713,7 @@ function renderNotes(){const {fresh,old}=notesSplit();
 function renderTabs(){for(const v of ["week","dates","msg","menu"])$("v-"+v).hidden=v!==tab;
   for(const b of document.querySelectorAll("#tbar button"))if(b.dataset.tab===tab)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")}
 function renderAll(){mergeX();renderTabs();renderNotes();renderWeek();renderDates();renderMenu();renderToast()}
-function setTab(t){tab=t;if(["size","range","dvroster","switch","ownpin"].includes(sheetKind))closeSheet();if(t==="menu")renderMenu();renderTabs();window.scrollTo(0,0)}
+function setTab(t){tab=t;if(PAGEK.includes(sheetKind))closeSheet();if(t==="menu")renderMenu();renderTabs();window.scrollTo(0,0)}
 let hiddenAt=0;
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){hiddenAt=Date.now();return}
   if(hiddenAt&&Date.now()-hiddenAt>300000){dview="list";shown=10;calM=null;calSel=null;calPast=null;renderDates();setTab("week")}hiddenAt=0});
@@ -741,16 +758,36 @@ window.addEventListener("pagehide",()=>{if(queue&&!queue.failed)flush()});
 
 // ----- sheets -----
 let sheetKind=null,reason="",pendingSet=null,rangeSel=null;
+// sheets that open as a page with a back arrow (the rest are bottom sheets)
+const PAGEK=["size","range","dvroster","switch","ownpin","dvchoose"];
 // a page's top line: a back arrow (leaves without saving) and its title
 const pageTop=(title,back,attr)=>'<div class="pgtop"><button type="button" class="back" '+(attr||"data-close")+' aria-label="Back to '+back+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><h2>'+title+'</h2></div>';
 // Settings and Update Multiple Dates are pages in the tab's space: it sits between the header and the tab bar (below both on a PC)
-function pageFit(sh){window.scrollTo(0,0);const hd=document.querySelector(".hdr"),tb=$("tbar"),ub=$("updbar");
+function pageFit(sh){window.scrollTo(0,0);pageEdges(sh)}
+function pageEdges(sh){const hd=document.querySelector(".hdr"),tb=$("tbar"),ub=$("updbar");
   const atBot=!!tb&&getComputedStyle(tb).position==="fixed";
   let top=hd?hd.getBoundingClientRect().bottom:0;if(ub&&!ub.hidden)top=Math.max(top,ub.getBoundingClientRect().bottom);if(tb&&!atBot)top=Math.max(top,tb.getBoundingClientRect().bottom);
   sh.style.setProperty("--pgTop",top+"px");sh.style.setProperty("--pgBot",(atBot?tb.offsetHeight:0)+"px")}
 // Settings (and Change my PIN), Update Multiple Dates, Devotions Manager and Switch profile are full-screen pages with a back arrow
-function openSheet(html,k){const was=sheetKind;sheetKind=k;const sh=$("sheet");const pg=["size","range","dvroster","switch","ownpin"].includes(k);const fresh=sh.hidden;if(sh.classList){sh.classList.toggle("still",!fresh&&(was===k||!["size","range","dvroster","switch","ownpin"].includes(was)));sh.classList.toggle("page",pg);sh.classList.remove("lv")}if(pg)pageFit(sh);$("sheetInner").innerHTML=html;$("sheet").hidden=false;if(fresh)$("sheetInner").scrollTop=0}
-function closeSheet(){const c=sheetKind==="dvpin"&&pinCtx;pinCtx=null;$("sheet").hidden=true;$("sheetInner").innerHTML="";sheetKind=null;if(c&&c.cancel)c.cancel()}
+function openSheet(html,k){const was=sheetKind;sheetKind=k;const sh=$("sheet");const pg=PAGEK.includes(k);const fresh=sh.hidden;if(sh.classList){sh.classList.toggle("still",!fresh&&(was===k||!PAGEK.includes(was)));sh.classList.toggle("page",pg);sh.classList.remove("lv")}if(pg)pageFit(sh);$("sheetInner").innerHTML=html;$("sheet").hidden=false;if(fresh)$("sheetInner").scrollTop=0;deskOpen(pg,fresh)}
+function closeSheet(){const c=sheetKind==="dvpin"&&pinCtx;pinCtx=null;$("sheet").hidden=true;$("sheetInner").innerHTML="";sheetKind=null;deskClose();if(c&&c.cancel)c.cancel()}
+// ----- wide PC windows only (class "dk"): side panel, centred dialogs that keep the focus, focus back to the button that opened it -----
+const isDk=()=>document.documentElement.classList.contains("dk");
+let deskRet=null;
+const deskFocus=box=>Array.from(box.querySelectorAll('button,input,select,textarea,a[href],[tabindex]:not([tabindex="-1"])')).filter(x=>!x.disabled&&!x.hidden&&x.offsetParent!==null);
+function deskOpen(pg,fresh){if(!isDk())return;const h=document.documentElement,inr=$("sheetInner");
+  h.classList.toggle("side",pg);inr.setAttribute("aria-modal",pg?"false":"true");
+  if(fresh&&!deskRet)deskRet=document.activeElement;
+  setTimeout(()=>{if($("sheet").hidden||inr.contains(document.activeElement))return;const f=deskFocus(inr)[0];if(f)f.focus()},60)}
+function deskClose(){const h=document.documentElement;if(!h.classList.contains("side")&&!deskRet)return;
+  h.classList.remove("side");$("sheetInner").setAttribute("aria-modal","true");const r=deskRet;deskRet=null;if(r&&r.isConnected&&r.focus)r.focus()}
+// Tab and Shift+Tab stay inside a centred dialog (the side panel is not a dialog, so the tab beside it stays reachable)
+document.addEventListener("keydown",e=>{if(e.key!=="Tab"||!isDk()||$("sheet").hidden)return;
+  const lv=$("rgLeave"),box=lv&&!lv.hidden?lv.querySelector(".leavecard"):!$("sheet").classList.contains("page")?$("sheetInner"):null;if(!box)return;
+  const f=deskFocus(box);if(!f.length)return;const a=f[0],z=f[f.length-1],at=document.activeElement;
+  if(!box.contains(at)){e.preventDefault();a.focus()}else if(e.shiftKey&&at===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&at===z){e.preventDefault();a.focus()}});
+// the side panel's top follows the tab bar as the page scrolls
+window.addEventListener("scroll",()=>{if(isDk()&&!$("sheet").hidden&&$("sheet").classList.contains("page"))pageEdges($("sheet"))},{passive:true});
 const REASONS=["Holidays","Work","Unwell","Family","Other"];
 function reasonsHtml(){return '<div class="reasons">'+REASONS.map(r=>'<button type="button" data-reason="'+r+'" aria-pressed="'+(reason===r)+'">'+r+'</button>').join("")+'</div>'+(reason==="Other"?'<input type="text" id="rOther" maxlength="60" placeholder="Type a short reason (optional)">':'')}
 function confirmSheet(i,want){const s=D.sessions[i],x=xOf(s);pendingSet={i,want};reason="";
@@ -766,7 +803,7 @@ function rangeSheet(){const m=me();if(!m)return;reason="";
   rangeSel=null;rangeDirty=false;rangeList()}
 // the back arrow on Update Multiple Dates: straight out if nothing was changed, otherwise ask first
 let rangeDirty=false;
-function rangeBack(){if(rangeDirty&&$("rgLeave")){$("rgLeave").hidden=false;$("sheet").classList.add("lv")}else closeSheet()}
+function rangeBack(){if(rangeDirty&&$("rgLeave")){$("rgLeave").hidden=false;$("sheet").classList.add("lv");if(isDk()){const f=deskFocus($("rgLeave"))[0];if(f)f.focus()}}else closeSheet()}
 function rangeList(){const m=me(),f=$("rgF").value,t=$("rgT").value;const box=$("rgList");if(!box)return;
   const a=f&&t&&t<f?t:f,b=f&&t&&t<f?f:t;
   const ds=upcoming().filter(i=>{const s=D.sessions[i].slice(0,10);return a&&b&&s>=a&&s<b});   // the day they're back isn't missed
@@ -920,16 +957,20 @@ function dvRoster(){const W=dvWeds();
     const off=offOf(w);if(off&&!(c&&c.p))return '<div class="dvrow off"><div><b>'+esc(fmt(w,true))+'</b><small>'+esc(off.l)+' · no devotions needed</small></div><button type="button" class="btn" data-dvw="'+w+'">Change</button></div>';
     return '<div class="dvrow'+(off?' off':'')+'"><div><b>'+esc(fmt(w,true))+'</b>'+(off?'<small>'+esc(off.l)+'</small>':'')+'<small'+(c&&c.p?'':' class="no"')+'>'+esc(c&&c.p?c.p:"No one yet")+'</small><div class="dvst">'+dvStatus(w,c)+'</div>'+dvHist(w)+'</div><button type="button" class="btn" data-dvw="'+w+'">Change</button></div>'}).join("")
    +'</div><p class="sub">Shows the next '+W.length+' Wednesdays.</p>'+dvMoreHtml(),"dvroster")}
-let dvSel=null;
+let dvSel=null,dvRosterY=0;
+// back from choosing a name: the Devotions Manager as it was (same Wednesdays, same scroll), without sliding in again
+function dvBackToRoster(){dvRoster();$("sheet").classList.add("still");$("sheetInner").scrollTop=dvRosterY}
 function dvChoose(w){const i=D.sessions.indexOf(w),cur=dvNow(w);dvSel=cur&&cur.p?{p:cur.p,m:cur.m||""}:null;
   const ms=D.members.filter(x=>!x.test).sort((a,b)=>a.name.localeCompare(b.name));
-  openSheet('<div class="dvbar"><button type="button" class="btn" id="dvBack">Cancel</button><button type="button" class="btn brass" id="dvGo" data-w="'+w+'" disabled>Save</button></div>'
-   +'<h2>Who is doing devotions on '+esc(fmt(w,true))+'?</h2><p class="dvpick" id="dvPick" aria-live="polite">Choose a name, then tap Save.</p>'
+  // a page like Settings: the back arrow returns to the Devotions Manager without saving
+  openSheet(pageTop('Who is doing devotions on '+esc(fmt(w,true))+'?',"Devotions Manager",'id="dvBack"')
+   +'<p class="dvpick" id="dvPick" aria-live="polite">Choose a name, then tap Save.</p>'
    +'<label class="srch"><span aria-hidden="true">'+ICON.search+'</span><input type="search" id="dvQ" placeholder="Search for a name" autocomplete="off" aria-label="Search for a name"><button type="button" id="dvQx" aria-label="Clear">✕</button></label>'
    +'<div class="dvopts">'+ms.map(m=>{const away=i>=0&&["x","p","s"].includes(m.cells[i]);return '<button type="button" class="dvopt" data-dvm="'+esc(m.id)+'" data-n="'+esc(m.name.toLowerCase())+'" aria-pressed="'+(!!dvSel&&dvSel.m===m.id)+'">'+esc(m.name)+(away?'<small>away that day</small>':'')+'</button>'}).join("")
    +'<button type="button" class="dvopt alt" data-dvm="__other" aria-pressed="'+(!!dvSel&&!dvSel.m)+'">Someone else (type a name)</button>'
    +'<input type="text" id="dvOther" maxlength="60" placeholder="Their name" value="'+esc(dvSel&&!dvSel.m?dvSel.p:"")+'"'+(dvSel&&!dvSel.m?'':' hidden')+'>'
    +'<button type="button" class="dvopt alt" data-dvm="__none" aria-pressed="false">No one yet</button></div>'
+   +'<div class="dvfoot"><button type="button" class="btn brass" id="dvGo" data-w="'+w+'" disabled>Save</button></div>'
    ,"dvchoose")}
 function dvGoLabel(w){const b=$("dvGo");if(!b)return;const o=$("dvOther");
   const nm=dvSel?(dvSel.none?"":dvSel.m?dvSel.p:(o?o.value.trim():"")):null;
@@ -953,8 +994,8 @@ $("sheet").addEventListener("click",async e=>{const t=e.target;
   if(t.closest("#dvPinGo")){const v=($("dvPinIn").value||"").trim();if(!/^\d{4}$/.test(v)){pinSheet("Type the 4 numbers.");return}
     const b=$("dvPinGo");b.disabled=true;b.textContent="Checking…";
     await pinSubmit(v);return}
-  const cw=t.closest("[data-dvw]");if(cw){dvChoose(cw.dataset.dvw);return}
-  if(t.closest("#dvBack")){dvRoster();return}
+  const cw=t.closest("[data-dvw]");if(cw){dvRosterY=$("sheetInner").scrollTop;dvChoose(cw.dataset.dvw);return}
+  if(t.closest("#dvBack")){dvBackToRoster();return}
   if(t.closest("#dvQx")){$("dvQ").value="";dvFilter();$("dvQ").focus();return}
   const op=t.closest("[data-dvm]");if(op){const v=op.dataset.dvm,w=$("dvGo").dataset.w;
     document.querySelectorAll("[data-dvm]").forEach(b=>b.setAttribute("aria-pressed",String(b===op)));
@@ -1054,7 +1095,7 @@ $("sheet").addEventListener("click",e=>{const t=e.target;
 $("sheet").addEventListener("change",e=>{const pf=e.target.closest("input[data-pref]");if(pf&&window.__bandPush){alertsDo(()=>window.__bandPush.setPrefs(prefsNow()),"Saved.");return}
   const c=e.target.closest("input[data-rg]");if(c){rangeDirty=true;rangeSel[c.dataset.rg]=c.checked;rangeList();return}
   if(e.target.id==="rgF"||e.target.id==="rgT"){rangeDirty=true;rangeSel=null;rangeList()}});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden){if(sheetKind==="range")rangeBack();else closeSheet()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden){if(sheetKind==="range")rangeBack();else if(sheetKind==="dvchoose")dvBackToRoster();else closeSheet()}});
 
 // ----- who are you (once per phone) -----
 if(store.get("band.whoSince","")!==(D.pwSince||"")){who="";store.set("band.who","")}
@@ -1125,7 +1166,7 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="6.4";
+window.__bandAppVer="6.5";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
