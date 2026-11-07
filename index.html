@@ -487,11 +487,13 @@ function musicHtml(list,none,poSun,s){if(!list.length)return '<p class="muted">'
     const tag=r.cat?r.cat:r.po?r.po+(poSun?" "+fmt(poSun,true):" this Sunday"):"";
     return '<li><div class="mrow"><div><b>'+esc(r.t)+'</b>'+(tag?' <span class="tag">'+esc(tag)+'</span>':'')+(r.i?'<span class="mi">'+esc(r.i)+'</span>':'')+'</div>'+(btn?'<div class="mbtns">'+btn+'</div>':'')+'</div></li>'}).join("")+'</ol>'}
 // Meeting Plan (only when the Bandmaster made that Sunday's music visible): wh "b" before / "a" after the service, b = a band item,
-// p = the picture of the Sunday piece it is (its View button names the piece from the Sunday list)
-function mpHtml(L,s,list){return '<ol class="mp">'+L.map(r=>{const pc=r.p&&(list||[]).find(x=>x.p===r.p);
+// p = the picture of the Sunday piece it is (its View button names the piece from the Sunday list), l = the recording of the
+// piece flagged to play out that Sunday that it is (v6.1: Listen, the same player as the Sunday list's)
+function mpHtml(L,s,list){return '<ol class="mp">'+L.map(r=>{const pc=(r.p&&(list||[]).find(x=>x.p===r.p))||(r.l&&(list||[]).find(x=>x.l===r.l)),nm=pc?pc.t:r.t;
+  let lb="";if(r.b&&r.l){lb='<button type="button" class="recb" data-rec="'+recs.length+'" aria-label="Listen to '+esc(nm)+'">'+ICON.play+'Listen</button>';recs.push({t:nm,l:r.l})}
   return '<li'+(r.b?' class="band"':'')+'>'+(r.wh==="b"?'<span class="mpwh">Before the service</span>':r.wh==="a"?'<span class="mpwh">After the service</span>':'')
   +esc(r.t)+(r.w?'<span class="mpw">'+esc(r.w)+'</span>':'')+(r.d?'<div class="mpd">'+esc(r.d)+'</div>':'')+(r.c?'<div class="mpd">'+esc(r.c)+'</div>':'')
-  +(r.b?mpBtns(wordsBtn(r.wk,pc?pc.t:r.t)+viewBtn(r.p,s,pc?pc.t:r.t,pc?pc.i:"")):"")+'</li>'}).join("")+'</ol>'}
+  +(r.b?mpBtns(wordsBtn(r.wk,nm)+viewBtn(r.p,s,nm,pc?pc.i:"")+lb):"")+'</li>'}).join("")+'</ol>'}
 const mpBtns=b=>b?'<div class="mbtns">'+b+'</div>':"";
 // "Tue 20 Oct 3:15pm" from an ISO time, "" if it isn't one
 function atText(t){const d=new Date(t);if(!t||isNaN(d))return "";const h=d.getHours();
@@ -980,7 +982,7 @@ window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="6.0";
+window.__bandAppVer="6.1";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
