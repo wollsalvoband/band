@@ -146,6 +146,7 @@ article.dc.hl{outline:4px solid var(--brass);outline-offset:2px}
 .dvopt[aria-pressed="true"]{border-color:var(--navy);background:color-mix(in srgb,var(--navy) 14%,var(--surface))}
 .pinin{font:800 2rem var(--f-body)!important;letter-spacing:.5em;text-align:center}
 .err{color:var(--bad);font-weight:700}
+.okm{margin:0;background:var(--ok-soft);color:var(--ok);border-radius:10px;padding:10px 12px;font-weight:700}
 .who{color:var(--muted)}
 .who b{color:var(--ink)}
 ol.mus{margin:0;padding-left:1.4em;display:grid;gap:8px}
@@ -317,7 +318,7 @@ label.f{display:grid;gap:6px;font-weight:700}
   <button type="button" data-tab="msg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h3l6 4V6L7 10z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg>Announcements<span class="badge" id="mBadge" hidden></span></button>
 </nav>
 <div id="toast" class="toast" role="status" hidden></div>
-<div id="pick" class="pick" hidden><div class="pickcard"><h1><small>Wollongong Salvos</small>Who are you?</h1><p class="muted">Choose your name once. This phone will remember it.</p><label class="f">Your name<select id="who"><option value="">Choose your name</option></select></label><button class="btn send" id="pickGo" disabled>Continue</button></div></div>
+<div id="pick" class="pick" hidden><div class="pickcard"><h1><small>Wollongong Salvos</small>Who are you?</h1><p class="muted">Choose your name once. This phone will remember it.</p><label class="f">Your name<select id="who"><option value="">Choose your name</option></select></label><button class="btn send" id="pickGo" disabled>Continue</button><p class="err" id="pickErr" role="alert" hidden></p></div></div>
 <div id="mv" class="mv" hidden role="dialog" aria-modal="true" aria-labelledby="mvT"><div class="mvh"><div><b id="mvT"></b><span id="mvS"></span><span class="yp" id="mvP"></span></div><div class="mvacts"><button type="button" class="btn brass mvpr" id="mvPrint" aria-label="Print" title="Print" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg></button><button type="button" class="btn navy" id="mvClose">Close</button></div></div><div class="mvn" id="mvN" hidden></div><div class="mvb" id="mvB"></div></div>
 <div id="sheet" class="sheet" hidden><div class="inner" id="sheetInner" role="dialog" aria-modal="true"></div></div>
 
@@ -701,7 +702,7 @@ window.addEventListener("pagehide",()=>{if(queue&&!queue.failed)flush()});
 // ----- sheets -----
 let sheetKind=null,reason="",pendingSet=null,rangeSel=null;
 function openSheet(html,k){sheetKind=k;$("sheetInner").innerHTML=html;$("sheet").hidden=false}
-function closeSheet(){$("sheet").hidden=true;$("sheetInner").innerHTML="";sheetKind=null}
+function closeSheet(){const c=sheetKind==="dvpin"&&pinCtx;pinCtx=null;$("sheet").hidden=true;$("sheetInner").innerHTML="";sheetKind=null;if(c&&c.cancel)c.cancel()}
 const REASONS=["Holidays","Work","Unwell","Family","Other"];
 function reasonsHtml(){return '<div class="reasons">'+REASONS.map(r=>'<button type="button" data-reason="'+r+'" aria-pressed="'+(reason===r)+'">'+r+'</button>').join("")+'</div>'+(reason==="Other"?'<input type="text" id="rOther" maxlength="60" placeholder="Type a short reason (optional)">':'')}
 function confirmSheet(i,want){const s=D.sessions[i],x=xOf(s);pendingSet={i,want};reason="";
@@ -800,21 +801,60 @@ function ytId(u){let m=u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|sh
 const onAppsScript=/googleusercontent\.com$/.test(location.hostname)&&D.form&&D.form.quick;
 const PREFS=[["notes","Announcements from the Bandmaster",""],["music","Music for practice and Sunday","When the Bandmaster updates it"],["noted","When the Bandmaster notes my dates",""]];
 // ----- role functions (installed app only: they need the Apps Script API) -----
-// The Devotions Coordinator edits the devotions roster. A 4-digit PIN from the Bandmaster, asked once and kept on this phone.
+// Every player gets the standard functions with no PIN. Someone holding a role that needs a PIN (D.pinRoles, the "PIN to
+// get in" ticks in the Hub) enters their 4-digit PIN when they choose their name, checked by the Apps Script (api=pin).
+// One checked PIN is kept on this phone, band.rolePin = {m: memberId, pin}, and every role function reuses it.
+// After signing in with the Hub's PIN they're asked once to choose their own (api=setpin), and can change it in Settings.
+// The Devotions Coordinator edits the devotions roster.
+// tests/role-pin.test.js runs the code between the "role pin" markers
+// ---- role pin: start ----
 const myRoles=()=>{const m=me();return (m&&m.roles)||[]};
+const memberById=id=>D.members.find(x=>x.id===id)||null;
+const hasRole=(id,k)=>{const m=memberById(id);return !!m&&(m.roles||[]).includes(k)};
+const pinRoles=()=>Array.isArray(D.pinRoles)?D.pinRoles:["bandmaster","devotionsCoordinator","testUser"];
+// older phones kept just the coordinator's PIN as a string: it belongs to whoever was picked
+function pinState(){const v=store.get("band.rolePin","");return v&&typeof v==="object"&&v.m&&v.pin?v:(v&&typeof v==="string"&&who?{m:who,pin:v}:null)}
+const pinOkFor=id=>{const s=pinState();return !!s&&!!id&&s.m===id};
+let pinCtx=null;   // the PIN being asked for: {m, role, title, label, ok, cancel}
+function pinSheet(err,ctx){if(ctx)pinCtx=ctx;const c=pinCtx;if(!c)return;
+  openSheet('<h2>'+esc(c.title)+'</h2><p class="sub">The 4 numbers the Bandmaster gave you. This phone remembers it, so you only do this once.</p>'
+  +'<input type="text" id="dvPinIn" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" class="pinin" aria-label="PIN">'
+  +(err?'<p class="err" role="alert">'+esc(err)+'</p>':'')+'<button type="button" class="btn navy" id="dvPinGo">Continue</button><button type="button" class="btn" data-close>Not now</button>',"dvpin");
+  setTimeout(()=>{const i=$("dvPinIn");i&&i.focus()},50)}
+function pinErr(r,label){return r&&r.error==="locked"?"Too many tries. Wait "+(r.wait||15)+" minutes, then try again.":r&&r.error==="nopin"?"The Bandmaster hasn't set your PIN yet.":r&&r.error==="role"?"This phone isn't set up as "+(label||"the Devotions Coordinator")+".":"That PIN isn't right. Check with the Bandmaster."}
+async function pinSubmit(v){const c=pinCtx;if(!c){closeSheet();return}
+  // c.fail (the name pick): a wrong PIN closes the PIN box and goes back to the name list with the message
+  const no=t=>{if(c.fail){pinCtx=null;closeSheet();c.fail(t)}else pinSheet(t)};
+  try{const r=await window.__bandApi({api:"pin",m:c.m,role:c.role,pin:v});if(r&&r.ok){store.set("band.rolePin",{m:c.m,pin:v});pinCtx=null;c.ok(r)}else no(c.fail&&r&&r.error==="pin"?"That PIN was incorrect. Choose your name and try again.":pinErr(r,c.label))}
+  catch(x){no("Couldn't check the PIN. Check your internet connection.")}}
+// Choose your own PIN: typed twice. first = straight after signing in with the Hub's PIN (Later keeps that one working)
+function ownPinSheet(err,first){openSheet('<h2>Choose your own PIN</h2><p class="sub">Pick 4 numbers you&#39;ll remember. You&#39;ll use them if you set up the band app on another phone.</p>'
+  +'<label class="f">New PIN<input type="text" id="opIn1" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" class="pinin"></label>'
+  +'<label class="f">Type it again<input type="text" id="opIn2" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" class="pinin"></label>'
+  +(err?'<p class="err" role="alert">'+esc(err)+'</p>':'')+'<button type="button" class="btn navy" id="opGo">Save my PIN</button><button type="button" class="btn" data-close>'+(first?'Later':'Not now')+'</button>',"ownpin");
+  setTimeout(()=>{const i=$("opIn1");i&&i.focus()},50)}
+async function ownPinSave(a,b,first){if(!/^\d{4}$/.test(a)){ownPinSheet("Type 4 numbers.",first);return}
+  if(a!==b){ownPinSheet("The two PINs don't match. Type them again.",first);return}
+  const s=pinState();if(!s||s.m!==who){closeSheet();return}
+  try{const r=await window.__bandApi({api:"setpin",m:who,pin:s.pin,np:a});
+    if(r&&r.ok){store.set("band.rolePin",{m:who,pin:a});openSheet('<h2>Choose your own PIN</h2><p class="okm">Your PIN is changed. Use the new one next time.</p><button type="button" class="btn navy" data-close>Done</button>',"ownpin");return}
+    ownPinSheet(r&&r.error==="pin"?"Your PIN has changed on another phone. Choose your name again to use the new one.":pinErr(r),first)}
+  catch(x){ownPinSheet("Couldn't save your PIN. Check your internet connection.",first)}}
+// the PIN on this phone stopped working (reset in the Hub, or changed on another phone): back to the name list
+function pinLost(){store.set("band.rolePin","");who="";store.set("band.who","");closeSheet();$("pick").hidden=false;
+  pickErr("Your PIN has changed. Choose your name and enter your PIN again.")}
+function pinSetHtml(){if(!window.__bandApi||!pinOkFor(who))return "";
+  return '<div class="sec">Your PIN</div><p class="small muted">The 4 numbers you use to get into the band app.</p><button type="button" class="btn wide" id="opOpen">Change my PIN</button>'}
+// ---- role pin: end ----
 function rolesHtml(){if(!window.__bandApi||!myRoles().includes("devotionsCoordinator"))return "";
   return '<div class="sec">Devotions Coordinator</div><button type="button" class="btn navy wide" id="dvOpen">Devotions roster</button>'}
-const dvPin=()=>store.get("band.rolePin","");
+const dvPin=()=>pinOkFor(who)?pinState().pin:"";
 let dvN=12;   // Wednesdays shown in the devotions roster; Show more dates adds 12 more
 function dvWeds(){return upcoming().filter(i=>kind(D.sessions[i])==="wed").slice(0,dvN)}
 function dvMoreHtml(){const all=upcoming().filter(i=>kind(D.sessions[i])==="wed");if(all.length<=dvN)return "";
   return '<button type="button" class="btn wide" id="dvMore">Show more dates, to '+esc(fmt(D.sessions[all[Math.min(all.length,dvN+12)-1]],true))+'</button>'}
 function dvNow(w){return (D.devo||{})[w]||null}
-function dvPinSheet(err){openSheet('<h2>Enter your coordinator PIN</h2><p class="sub">The 4 numbers the Bandmaster gave you. This phone remembers it, so you only do this once.</p>'
-  +'<input type="text" id="dvPinIn" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" class="pinin" aria-label="PIN">'
-  +(err?'<p class="err" role="alert">'+esc(err)+'</p>':'')+'<button type="button" class="btn navy" id="dvPinGo">Continue</button><button type="button" class="btn" data-close>Not now</button>',"dvpin");
-  setTimeout(()=>{const i=$("dvPinIn");i&&i.focus()},50)}
-function dvErr(r){return r&&r.error==="locked"?"Too many tries. Wait "+(r.wait||15)+" minutes, then try again.":r&&r.error==="nopin"?"The Bandmaster hasn't set your PIN yet.":r&&r.error==="role"?"This phone isn't set up as the Devotions Coordinator.":"That PIN isn't right. Check with the Bandmaster."}
+function dvErr(r){return pinErr(r,"the Devotions Coordinator")}
 // how a Wednesday stands (D.devoAck from the Apps Script): Noted, Pending, Overdue or Not asked yet, plus who it was before
 function dvStatus(w,c){const e=(D.devoAck||{})[w],when=t=>t?whenText(new Date(t)):"";if(!c||!c.p)return "";
   if(!c.m)return '<span class="pill">Not in the band app</span>';
@@ -849,16 +889,18 @@ async function dvSave(w,send){const o=$("dvOther"),person=dvSel.none?"":dvSel.m?
     if(r&&r.ok){D.devo=D.devo||{};if(r.person)D.devo[w]={p:r.person,m:pm};else delete D.devo[w];
       if(send&&pm){D.devoAck=D.devoAck||{};const e=D.devoAck[w];D.devoAck[w]=Object.assign({},e&&e.m===pm?e:{hist:(e&&e.hist)||[]},{m:pm,p:r.person,sentAt:new Date().toISOString()})}
       dvRoster();showMsg("Saved",(r.person?r.person+" is on for ":"No one yet for ")+fmt(w,true)+"."+(send&&pm?" They've been asked to tap Noted.":"")+" The Bandmaster has been told.");return}
-    if(r&&(r.error==="pin"||r.error==="nopin"||r.error==="role")){store.set("band.rolePin","");dvPinSheet(dvErr(r));return}
+    if(r&&(r.error==="pin"||r.error==="nopin")){pinLost();return}
     showMsg("Not saved",dvErr(r));if($("dvGo"))dvGoLabel(w);else dvRoster()}
   catch(e){showMsg("Not saved","Check your internet connection, then try again.");if($("dvGo"))dvGoLabel(w);else dvRoster()}}
 $("sheet").addEventListener("click",async e=>{const t=e.target;
-  if(t.closest("#dvOpen")){dvN=12;if(dvPin())dvRoster();else dvPinSheet("");return}
+  if(t.closest("#dvOpen")){dvN=12;dvRoster();return}
+  if(t.closest("#opOpen")){ownPinSheet("",false);return}
+  if(t.closest("#opGo")){const first=$("sheetInner").innerHTML.includes(">Later<"),b=$("opGo");const a=($("opIn1").value||"").trim(),c=($("opIn2").value||"").trim();
+    b.disabled=true;b.textContent="Saving…";await ownPinSave(a,c,first);return}
   if(t.closest("#dvMore")){const y=$("sheetInner").scrollTop;dvN+=12;dvRoster();$("sheetInner").scrollTop=y;return}
-  if(t.closest("#dvPinGo")){const v=($("dvPinIn").value||"").trim();if(!/^\d{4}$/.test(v)){dvPinSheet("Type the 4 numbers.");return}
+  if(t.closest("#dvPinGo")){const v=($("dvPinIn").value||"").trim();if(!/^\d{4}$/.test(v)){pinSheet("Type the 4 numbers.");return}
     const b=$("dvPinGo");b.disabled=true;b.textContent="Checking…";
-    try{const r=await window.__bandApi({api:"pin",m:me().id,pin:v});if(r&&r.ok){store.set("band.rolePin",v);dvRoster()}else dvPinSheet(dvErr(r))}
-    catch(x){dvPinSheet("Couldn't check the PIN. Check your internet connection.")}return}
+    await pinSubmit(v);return}
   const cw=t.closest("[data-dvw]");if(cw){dvChoose(cw.dataset.dvw);return}
   if(t.closest("#dvBack")){dvRoster();return}
   if(t.closest("#dvQx")){$("dvQ").value="";dvFilter();$("dvQ").focus();return}
@@ -879,7 +921,7 @@ $("sheet").addEventListener("input",e=>{if(e.target.id==="dvQ")dvFilter();if(e.t
 function sizeSheet(){const m=me();const nm=m?(m.short||m.name.split(" ")[0]):"";
   openSheet('<h2>Settings</h2>'
    +(m?'<div class="sec">Your name</div><div class="setrow"><b>'+esc(m.name)+'</b>'+(onAppsScript?'<a class="lnk" href="'+esc(D.form.quick)+'" target="_top" id="signOut">Not '+esc(nm)+'? Switch</a>':'<button type="button" class="lnk" id="signOut">Not '+esc(nm)+'? Switch</button>')+'</div>':'')
-   +rolesHtml()
+   +pinSetHtml()+rolesHtml()
    +'<div class="sec">Text size</div><div class="sizes">'+[[17,"Normal"],[20,"Large"],[23,"Larger"]].map(z=>'<button type="button" data-fs="'+z[0]+'" aria-pressed="'+(fs===z[0])+'"><span style="font-size:'+z[0]+'px">Aa</span><small>'+z[1]+'</small></button>').join("")+'</div>'
    +'<div class="sec">Latest details</div><div class="setrow"><span class="small">'+esc(updText().replace(/^v[\d.]+ · /,""))+'</span><button type="button" class="btn" id="refreshNow">Refresh now</button></div><p class="small muted">The app also checks by itself every few minutes.'+(PC?'':' You can pull down from the top of the page to check too.')+'</p>'
    +(window.__bandInstall&&window.__bandInstall.need()?'<div class="sec">Use as an app</div><div class="setrow"><span class="small">Put the band app on your Home Screen so it opens like an app and can send alerts.</span><button type="button" class="btn brass" id="instHow">Show me how</button></div>':'')
@@ -946,10 +988,35 @@ if(store.get("band.whoSince","")!==(D.pwSince||"")){who="";store.set("band.who",
 const sel=$("who");
 // a test user (for the Bandmaster to check the app) comes last, marked as a test
 sel.innerHTML+=D.members.filter(m=>m.player).slice().sort((a,b)=>(a.test?1:0)-(b.test?1:0)||a.formName.localeCompare(b.formName)).map(m=>'<option value="'+esc(m.id)+'">'+esc(m.formName||m.name)+(m.test?' (test user)':'')+'</option>').join("");
-sel.addEventListener("change",()=>{$("pickGo").disabled=!sel.value});
-$("pickGo").addEventListener("click",()=>{if(!sel.value)return;who=sel.value;store.set("band.who",who);store.set("band.whoSince",D.pwSince||"");$("pick").hidden=true;
+sel.addEventListener("change",()=>{$("pickGo").disabled=!sel.value;pickErr("")});
+function pickDone(id){who=id;store.set("band.who",who);store.set("band.whoSince",D.pwSince||"");if(!(memberById(id)||{}).test)store.set("band.lastWho",id);$("pick").hidden=true;
   const seen=store.get("band.noted",{}),m=me();if(m)myNotes().forEach(n=>{if(seen[n.id]===n.v)markNoted(n)});   // notes read before picking a name
-  loadNotedFor();renderAll();window.scrollTo(0,0);if(window.__bandPush)window.__bandPush.resync()});
+  loadNotedFor();renderAll();window.scrollTo(0,0);if(window.__bandPush)window.__bandPush.resync()}
+// ---- role pick: start ----
+function pickErr(t){const el=$("pickErr");el.textContent=t;el.hidden=!t}
+// Anyone holding a role that needs a PIN (D.pinRoles) enters their PIN to get in, unless this phone already holds it.
+// A wrong PIN or Not now: back to the name list with a message, and they don't get in. Signing in with the Hub's PIN
+// (own false) asks them once on this phone to choose their own.
+// Choosing the test user needs the person using the phone (the one whose PIN this phone holds, else the last name picked)
+// to hold the TEST USER role, and their PIN, unless this phone already checked it. Without it the name pick stays open.
+const needsPin=id=>{const m=memberById(id);return !!m&&!m.test&&(m.roles||[]).some(r=>pinRoles().includes(r))&&!pinOkFor(id)};
+function pickWho(id){const m=memberById(id);if(!m)return;pickErr("");
+  const back=t=>{$("pick").hidden=false;pickErr(t)};
+  if(m.test){const cands=[(pinState()||{}).m,store.get("band.lastWho","")].filter((x,i,a)=>x&&a.indexOf(x)===i&&hasRole(x,"testUser"));
+    if(!cands.length){pickErr("Only someone with the TEST USER role can use the test user. Choose your own name.");return}
+    if(!pinRoles().includes("testUser")||cands.some(pinOkFor)){pickDone(id);return}
+    if(!window.__bandApi){pickErr("Checking a PIN needs the band app and an internet connection.");return}
+    const h=memberById(cands[0]);$("pick").hidden=true;
+    pinSheet("",{m:h.id,role:"testUser",title:"Enter "+(h.short||h.name)+"'s PIN for the test user",label:"a TEST USER",ok:()=>{closeSheet();pickDone(id)},cancel:()=>back("")});return}
+  if(!needsPin(id)){pickDone(id);return}
+  if(!window.__bandApi){pickErr("Your name needs your PIN, and checking it needs the band app and an internet connection.");return}
+  $("pick").hidden=true;
+  pinSheet("",{m:id,role:"any",title:"Enter your PIN",label:"someone with a role",ok:r=>{closeSheet();pickDone(id);
+      const asked=store.get("band.ownPinAsked",{});if(r&&r.own===false&&!asked[id]){asked[id]=1;store.set("band.ownPinAsked",asked);ownPinSheet("",true)}},
+    fail:back,cancel:()=>back("You need your PIN to use the app with this name.")})}
+// ---- role pick: end ----
+$("pickGo").addEventListener("click",()=>{if(sel.value)pickWho(sel.value)});
+if(who&&needsPin(who)){who="";store.set("band.who","")}   // a role holder needs their PIN on this phone first
 if(!who)$("pick").hidden=false;
 
 // ----- header -----
@@ -982,7 +1049,7 @@ window.__bandRerender=function(){mergeX();setTop();if(!D.members.some(m=>m.id===
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="6.1";
+window.__bandAppVer="6.2";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
