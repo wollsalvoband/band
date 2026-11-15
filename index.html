@@ -591,9 +591,11 @@ function fullMusicHtml(s,M,none,past){
   const w=(M.suns||[]).find(x=>x.d===s);return '<div class="sec">Music</div>'+musicHtml((w&&w.list)||[],none,null,s)+planHtml(s,w)+wordsHtml(s,w)}
 // A past band date (D.past, the last 8 weeks), picked in the calendar: shown like This week, but read-only
 const PST={in:"You were In",away:"You were away",usual:"Not usually on "};
-function pastCardHtml(m,s){const PD=D.past||{},j=(PD.sessions||[]).indexOf(s),off=offOf(s),c=(m.pcells||[])[j];
+// a date that finished after the last publish isn't in D.past yet, so it reads from D.sessions, cells and D.music
+function pastCardHtml(m,s){const PP=D.past||{},pj=(PP.sessions||[]).indexOf(s),live=pj<0,PD=live?(D.music||{}):PP,
+  j=live?D.sessions.indexOf(s):pj,ck=live?"cells":"pcells",off=offOf(s),c=(m[ck]||[])[j];
   const st=["x","p"].includes(c)?"away":c==="s"?"usual":"in",away=["x","p","s"].includes(c)?["You"]:[];
-  D.members.forEach(x=>{if(x.id!==m.id&&!x.test&&["x","p","s"].includes((x.pcells||[])[j]))away.push(shortName(x.name))});
+  D.members.forEach(x=>{if(x.id!==m.id&&!x.test&&["x","p","s"].includes((x[ck]||[])[j]))away.push(shortName(x.name))});
   return '<article class="dc past'+(kind(s)==="ev"?' evc':'')+'" data-s="'+s+'"><div class="dh"><span class="dd">'+fmt(s,true)+'</span>'+(off?'':'<span class="dk">'+kindLabel(s)+'</span>')+evHtml(s)+'<span class="ptag">Past</span></div>'
    +(off?'<div class="offst">'+esc(off.l)+(off.n?'<small>'+esc(off.n)+'</small>':'')+'</div>'
      :'<div class="st '+st+'">'+ICON[st]+'<span>'+esc(PST[st]+(st==="usual"?(kind(s)==="sun"?"Sundays":"Wednesdays"):""))+'</span></div>'+fullMusicHtml(s,PD,"No music shown for this date",true)
@@ -633,7 +635,10 @@ function devoGo(s){const i=D.sessions.indexOf(s);if(i<0)return;dview="list";
   const c=document.querySelector('#myarea article[data-s="'+s+'"]');if(!c)return;c.scrollIntoView({behavior:"smooth",block:"center"});
   c.classList.add("hl");setTimeout(()=>c.classList.remove("hl"),3500)}
 // past band dates the calendar can show (D.past, the last 8 weeks), and its months, oldest first
-function pastDates(up){const u=new Set(up.map(i=>D.sessions[i]));return ((D.past||{}).sessions||[]).filter(s=>!u.has(s))}
+// plus any date in D.sessions that has finished since the data was published (e.g. today's Sunday after 1pm), so it
+// shows as Past straight away instead of dropping off the calendar until the next publish
+function pastDates(up){const u=new Set(up.map(i=>D.sessions[i])),ps=(D.past||{}).sessions||[],seen=new Set(ps);
+  return ps.filter(s=>!u.has(s)).concat(D.sessions.filter(s=>!u.has(s)&&!seen.has(s)))}
 function calMonths(up){return [...new Set(pastDates(up).concat(up.map(i=>D.sessions[i])).map(s=>s.slice(0,7)))].sort()}
 function calHtml(m,up){const past=pastDates(up);if(!up.length&&!past.length)return '<p class="muted">No band dates coming up.</p>';
   const months=calMonths(up);
@@ -1171,7 +1176,7 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="6.6";
+window.__bandAppVer="6.7";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
