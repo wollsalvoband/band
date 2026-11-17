@@ -523,7 +523,8 @@ const shortName=n=>{const w=String(n).trim().split(/\s+/);return w.length>1?w[0]
 function awayHtml(m,i){const a=[];if(eff(m,i).want==="away")a.push("You");
   D.members.forEach(x=>{if(x.id!==m.id&&!x.test&&["x","p","s"].includes(x.cells[i]))a.push(shortName(x.name))});
   return '<div class="who"><b>Away:</b> '+(a.length?esc(a.join(", ")):"Nobody")+'</div>'}
-const kindLabel=s=>kind(s)==="ev"?((xOf(s)||{}).t||"Band event")+(xWhen(xOf(s))?" · "+hm12(xOf(s).s):""):kind(s)==="sun"?"Sunday meeting":"Practice";
+// HTML: the event title is escaped here, since every place that shows it builds HTML
+const kindLabel=s=>kind(s)==="ev"?esc((xOf(s)||{}).t||"Band event")+(xWhen(xOf(s))?" · "+hm12(xOf(s).s):""):kind(s)==="sun"?"Sunday meeting":"Practice";
 function evHtml(s){const ev=evOn(s);return ev.length?'<span class="ev">★ '+esc(ev.map(e=>e.title+(e.time?", "+e.time:"")).join(" · "))+'</span>':''}
 
 // ----- music -----
@@ -888,7 +889,7 @@ function recSheet(r){const url=String(r.l||"").trim();let body="";
   const yt=ytId(url);
   if(yt)body='<div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/'+yt.id+'?rel=0&playsinline=1&autoplay=1&mute=1&enablejsapi=1'+(yt.start?'&start='+yt.start:'')+'" id="recVid" title="'+esc(r.t)+'" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><button type="button" class="snd" id="recSnd"><span><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Tap for sound</span></button></div><a class="btn wide" href="'+esc(url)+'" target="_blank" rel="noopener">Open in YouTube</a><p class="small muted">If the video won\'t play here, tap Open in YouTube.</p>';
   else if(/\.(mp3|m4a|aac|wav|ogg)(\?|$)/i.test(url))body='<audio controls autoplay preload="auto" src="'+esc(url)+'"></audio>';
-  else body='<a class="btn brass wide" href="'+esc(url)+'" target="_blank" rel="noopener">Open the recording</a>';
+  else body='<a class="btn brass wide" href="'+esc(/^https?:\/\//i.test(url)?url:"#")+'" target="_blank" rel="noopener">Open the recording</a>';   // web links only, never javascript:
   openSheet('<span class="ev" style="font-size:.9rem">Recording</span><h2>'+esc(r.t)+'</h2>'+(r.i?'<p class="sub">'+esc(r.i)+'</p>':'')+body+'<button type="button" class="btn navy" data-close>Close</button>',"rec")}
 // YouTube clips start playing muted (phones block autoplay with sound); Tap for sound unmutes them through the IFrame API's
 // command messages, which the embed accepts because of enablejsapi=1. playVideo also starts a clip the phone didn't autoplay.
@@ -1176,7 +1177,7 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="6.7";
+window.__bandAppVer="6.8";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
