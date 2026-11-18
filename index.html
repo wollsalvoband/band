@@ -1047,7 +1047,8 @@ function sizeSheet(){
    +setCard('<div class="sec">Check for Updates</div><div class="setrow"><span class="small" id="updNow" aria-live="polite">'+esc(updText().replace(/^v[\d.]+ · /,""))+'</span><button type="button" class="btn" id="refreshNow">Refresh now</button></div><p class="small muted">The app also checks by itself every few minutes.'+(PC?'':' You can pull down from the top of the page to check too.')+'</p>')
    +(window.__bandInstall&&window.__bandInstall.need()?setCard('<div class="sec">Use as an app</div><div class="setrow"><span class="small">Put the band app on your Home Screen so it opens like an app and can send alerts.</span><button type="button" class="btn brass" id="instHow">Show me how</button></div>'):'')
    +(window.__bandPush&&!PC?setCard('<div class="sec">Alerts on this phone</div><div id="alertsBox"><p class="muted">Checking…</p></div>'):'')
-   +'<p class="small muted">'+(window.__bandAppVer?'App version '+esc(window.__bandAppVer):'Band page')+'</p>',"size");
+   +'<p class="small muted">'+(window.__bandAppVer?'App version '+esc(window.__bandAppVer):'Band page')+'</p>'
+   +(window.__bandSrv&&window.__bandSrv().pilot?'<p class="small muted">Band server: '+(window.__bandSrv().on?'New (test)':'Old')+'</p>':''),"size");
   renderAlerts()}
 let alertBusy=false;
 function renderAlerts(msg){const box=$("alertsBox");if(!box||!window.__bandPush)return;
@@ -1177,12 +1178,43 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="6.8";
+window.__bandAppVer="6.9";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
-function call(p){var q=Object.keys(p).map(function(k){return encodeURIComponent(k)+"="+encodeURIComponent(p[k])}).join("&");
+function callOld(p){var q=Object.keys(p).map(function(k){return encodeURIComponent(k)+"="+encodeURIComponent(p[k])}).join("&");
   return fetch(API+"?"+q,{redirect:"follow",cache:"no-store",keepalive:p.api==="send"||p.api==="noted"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})}
+// ----- Phase 3 pilot: a member ticked "Use the new band server" in the Hub (data member.srv "new") talks to the new
+// band server (NEW) with a device token instead. Anything going wrong there sends the phone quietly back to the Apps
+// Script for 6 hours. Everyone else only ever calls the Apps Script, as before.
+var NEW="https://band-api.band-api.workers.dev",KS="band.srv",KTK="band.tok",KTM="band.tokM",KDN="band.srvDown",DOWN_MS=6*3600000;
+var EP={data:"/v1/data",send:"/v1/send",noted:"/v1/noted",reply:"/v1/reply",pin:"/v1/pin",setpin:"/v1/setpin",devo:"/v1/devo",sub:"/v1/push/subscribe",unsub:"/v1/push/unsubscribe"};
+function whoNow(){try{return JSON.parse(localStorage.getItem("band.who")||'""')||""}catch(e){return ""}}
+function onNew(){return !!NEW&&st.get(KS)==="new"&&!!st.get(KTK)&&st.get(KTM)===whoNow()}
+function signIn(){var m=whoNow(),k=st.get(KK)||"";if(!NEW||!m||!k)return Promise.resolve(false);
+  return fetch(NEW+"/v1/auth/device",{method:"POST",cache:"no-store",headers:{"content-type":"application/json"},body:JSON.stringify({k:k,m:m})})
+    .then(function(r){return r.json()}).then(function(r){if(r&&r.ok&&r.token){st.set(KTK,r.token);st.set(KTM,m);return true}return false},function(){return false})}
+function callNew(p){var b={};Object.keys(p).forEach(function(x){if(x!=="api"&&x!=="k"&&x!=="m")b[x]=p[x]});
+  var go=function(){var o={cache:"no-store",headers:{authorization:"Bearer "+(st.get(KTK)||"")},keepalive:p.api==="send"||p.api==="noted"};
+    if(p.api!=="data"){o.method="POST";o.headers["content-type"]="application/json";o.body=JSON.stringify(b)}
+    return fetch(NEW+EP[p.api],o)};
+  // a 401 means sign in again (once); if that fails too, the phone goes back to the Apps Script
+  return go().then(function(r){if(r.status!==401)return r;return signIn().then(function(ok){if(!ok)throw new Error("signin");return go()})})
+    .then(function(r){if(r.status===401||r.status>=500)throw new Error("HTTP "+r.status);return r.json()})}
+function srvDown(){st.set(KDN,String(Date.now()));leaveNew()}
+// reads fall back to the Apps Script at once; a write that failed isn't sent twice: it fails, and the next try goes to the Apps Script
+function call(p){if(!onNew()||!EP[p.api])return callOld(p);
+  return callNew(p).catch(function(e){srvDown();if(p.api==="data")return callOld(p);throw e})}
+// after every data load: move this phone to or from the new server as the Hub's tick says
+var srvBusy=false;
+function srvDecide(d){if(!NEW||srvBusy)return;var me=(d&&d.members||[]).filter(function(x){return x.id===whoNow()})[0];var want=!!(me&&me.srv==="new");
+  window.__bandSrvPilot=want;
+  if(want&&!onNew()){if(Date.now()-(+st.get(KDN)||0)<DOWN_MS)return;srvBusy=true;
+    signIn().then(function(ok){if(!ok)return;st.set(KS,"new");return movePush("old")}).catch(function(){}).then(function(){srvBusy=false})}
+  else if(!want&&st.get(KS)==="new")leaveNew()}
+function leaveNew(){var was=onNew();st.del(KS);var done=function(){st.del(KTK);st.del(KTM)};
+  (was?movePush("new"):Promise.resolve()).catch(function(){}).then(done,done)}
+window.__bandSrv=function(){return {pilot:!!window.__bandSrvPilot,on:onNew()}};
 // sending from the page goes through the same API, shaped like google.script.run
 function mk(ok,fail){return{withSuccessHandler:function(f){return mk(f,fail)},withFailureHandler:function(f){return mk(ok,f)},
   sendFromPage:function(n,d,id,note,mid){call({api:"send",k:st.get(KK)||"",n:n,d:d,id:id,note:note||"",m:mid||""}).then(function(r){
@@ -1212,7 +1244,7 @@ function check(){if(busy)return;busy=true;var k=st.get(KK)||"";var first=!booted
   if(first)gate("Opening…","Getting the latest band details. The first time can take up to 30 seconds.",false,"",false);
   else status({checking:true,checked:+st.get(KT)||0});
   call({api:"data",k:k,m:whoNow()}).then(function(r){
-    if(r&&r.ok){var t=Date.now();st.set(KD,JSON.stringify(r.data));st.set(KT,String(t));
+    if(r&&r.ok){var t=Date.now();st.set(KD,JSON.stringify(r.data));st.set(KT,String(t));srvDecide(r.data);
       if(first){window.__bandStatus={checked:t};boot(r.data)}else{apply(r.data);status({checked:t})}return}
     if(r&&r.error==="password"){st.del(KK);st.del(KD);if(booted){location.reload();return}askPw(k?"The password has changed. Please enter the new one.":"");return}
     throw new Error((r&&r.error)||"unavailable")
@@ -1265,11 +1297,21 @@ function updatedToast(){if(st.get(KU)===window.__bandAppVer){st.del(KU);st.del(K
 // ----- alerts (web push straight from the band's Apps Script) -----
 var KP="band.push";
 function b64ToU8(s){s=s.replace(/-/g,"+").replace(/_/g,"/");s+="===".slice((s.length+3)%4);var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
-function whoNow(){try{return JSON.parse(localStorage.getItem("band.who")||'""')||""}catch(e){return ""}}
 function pushPrefs(){try{return JSON.parse(st.get(KP)||"null")}catch(e){return null}}
 function reg(){return navigator.serviceWorker.ready}
 function sendSub(sub,prefs){var j=sub.toJSON();var on=Object.keys(prefs).filter(function(k){return prefs[k]}).join(",");
   return call({api:"sub",k:st.get(KK)||"",m:whoNow(),ep:j.endpoint,p:j.keys.p256dh,a:j.keys.auth,prefs:on,test:"1"}).then(function(r){if(!r||!r.ok)throw new Error((r&&r.error)||"failed")})}
+// the key phones subscribe with: the new server's own (it may differ from the Apps Script's), or the Apps Script's from the data
+function pushKey(isNew){if(!isNew)return Promise.resolve((window.__BAND_DATA__||{}).vapid||"");
+  return fetch(NEW+"/v1/push/key",{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){return (j&&j.ok&&j.key)||""})}
+// Moving servers with alerts on: unsubscribe from the server being left (api=unsub or /v1/push/unsubscribe), drop the
+// phone's subscription, and subscribe again with the other server's key and on that server, so alerts come from one only.
+// Called after the switch (from = the server being left).
+function movePush(from){var p=pushPrefs();if(!p||!("serviceWorker" in navigator))return Promise.resolve();
+  return reg().then(function(r){return r.pushManager.getSubscription().then(function(sub){if(!sub)return;var ep=sub.toJSON().endpoint;
+    var un=from==="new"?callNew({api:"unsub",ep:ep}):callOld({api:"unsub",k:st.get(KK)||"",ep:ep});
+    return un.catch(function(){}).then(function(){return sub.unsubscribe()}).then(function(){return pushKey(onNew())}).then(function(key){if(!key)throw new Error("no key");
+      return r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(key)})}).then(function(s){return sendSub(s,p)})})})}
 window.__bandPush={
   state:function(){var ok="serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
     var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -1277,8 +1319,7 @@ window.__bandPush={
     if(Notification.permission==="denied")return Promise.resolve({reason:"denied"});
     return reg().then(function(r){return r.pushManager.getSubscription()}).then(function(sub){var p=pushPrefs();return {on:!!(sub&&p),prefs:p||{notes:true,music:true,noted:true}}})},
   enable:function(prefs){return Notification.requestPermission().then(function(perm){if(perm!=="granted")throw new Error("denied");
-      var key=(window.__BAND_DATA__||{}).vapid;if(!key)throw new Error("no key");
-      return reg().then(function(r){return r.pushManager.getSubscription().then(function(s){return s||r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(key)})})})})
+      return pushKey(onNew()).then(function(key){if(!key)throw new Error("no key");return reg().then(function(r){return r.pushManager.getSubscription().then(function(s){return s||r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(key)})})})})})
     .then(function(sub){return sendSub(sub,prefs).then(function(){st.set(KP,JSON.stringify(prefs))})})},
   setPrefs:function(prefs){return reg().then(function(r){return r.pushManager.getSubscription()}).then(function(sub){if(!sub)throw new Error("off");
     var j=sub.toJSON(),on=Object.keys(prefs).filter(function(k){return prefs[k]}).join(",");
