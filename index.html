@@ -1048,7 +1048,7 @@ function sizeSheet(){
    +(window.__bandInstall&&window.__bandInstall.need()?setCard('<div class="sec">Use as an app</div><div class="setrow"><span class="small">Put the band app on your Home Screen so it opens like an app and can send alerts.</span><button type="button" class="btn brass" id="instHow">Show me how</button></div>'):'')
    +(window.__bandPush&&!PC?setCard('<div class="sec">Alerts on this phone</div><div id="alertsBox"><p class="muted">Checking…</p></div>'):'')
    +'<p class="small muted">'+(window.__bandAppVer?'App version '+esc(window.__bandAppVer):'Band page')+'</p>'
-   +(window.__bandSrv&&window.__bandSrv().pilot?'<p class="small muted">Band server: '+(window.__bandSrv().on?'New (test)':'Old')+'</p>':''),"size");
+   +(window.__bandSrv&&window.__bandSrv().pilot?'<p class="small muted">Band server: '+(window.__bandSrv().on?'New':'Old')+'</p>':''),"size");
   renderAlerts()}
 let alertBusy=false;
 function renderAlerts(msg){const box=$("alertsBox");if(!box||!window.__bandPush)return;
@@ -1178,7 +1178,7 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="6.9";
+window.__bandAppVer="7.0";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
