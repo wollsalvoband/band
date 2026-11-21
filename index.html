@@ -289,7 +289,11 @@ ol.mp .mpd{font-weight:400;margin-top:3px;white-space:pre-line}
 .sheet.page .inner>.leave{max-width:none;margin:0}
 .leavecard{background:var(--surface);width:100%;max-width:600px;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));display:grid;gap:12px}
 @media (prefers-reduced-motion:no-preference){.sheet.page:not(.still) .inner{animation:fromR .22s ease-out}@keyframes fromR{from{transform:translateX(100%)}}}
-.mrow .mav{width:52px;height:52px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--navy);color:var(--on-navy);font-weight:800;font-size:1.15rem}
+.mcard{display:flex;align-items:center;gap:14px;padding:4px 4px 0}
+.mcard>span:last-child{flex:1;min-width:0}
+.mcard b{display:block;font-size:1.2rem;font-weight:700}
+.mcard small.inst2{display:block;color:var(--ink);font-size:.9rem;font-weight:700}
+.mcard .mav{width:52px;height:52px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--navy);color:var(--on-navy);font-weight:800;font-size:1.15rem}
 .fl{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;font-weight:700}
 .sheet input[type=date]{display:block;min-width:0;max-width:100%;-webkit-appearance:none;appearance:none}
 .two{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
@@ -1068,6 +1072,7 @@ function dvFilter(){const q=($("dvQ")||{}).value||"";const n=q.trim().toLowerCas
   document.querySelectorAll(".dvopt[data-n]").forEach(b=>{b.hidden=!!n&&!b.dataset.n.includes(n)})}
 $("sheet").addEventListener("input",e=>{if(e.target.id==="dvQ")dvFilter();if(e.target.id==="dvOther"){const g=$("dvGo");if(g)dvGoLabel(g.dataset.w)}});
 // Menu tab: who's using this phone (tap to switch), Settings, then any role tools (Devotions Manager)
+const IC_SWITCH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5 1.6 0 3 .4 4.1 1.2"/><path d="M16 13h6l-2-2M22 17h-6l2 2"/></svg>';
 const IC_GEAR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
 // a role's key from the Hub as members read it: "devotionsCoordinator" -> "Devotions Coordinator"
 const ROLE_NAMES={bandmaster:"Bandmaster",devotionsCoordinator:"Devotions Coordinator",testUser:"Test user"};
@@ -1075,10 +1080,11 @@ const roleName=k=>ROLE_NAMES[k]||String(k||"").replace(/([a-z])([A-Z])/g,"$1 $2"
 function renderMenu(){const box=$("menuArea");if(!box)return;const m=me();
   const ini=m?m.name.split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase():"?";
   const rl=m?myRoles().map(roleName).filter(Boolean):[];
-  const inner='<span class="mav" aria-hidden="true">'+esc(ini)+'</span><span><b>'+esc(m?m.name:"Choose your name")+'</b>'+(isViewer(m)?'<small class="inst2">Viewing only</small>':m&&m.part?'<small class="inst2">'+esc(m.part)+'</small>':'')
-    +(rl.length?'<span class="mpills">'+rl.map(x=>'<span class="mpill">'+esc(x)+'</span>').join("")+'</span>':'')+'<small>Switch profile</small></span><span class="chev" aria-hidden="true">›</span>';
-  const prof='<button type="button" class="mrow" id="switchAsk">'+inner+'</button>';
-  box.innerHTML='<div class="mgrp">'+prof+'<button type="button" class="mrow" id="sizeBtn">'+IC_GEAR+'<span>Settings</span><span class="chev" aria-hidden="true">›</span></button></div>'+rolesHtml()}
+  // v7.4: who's signed in shows above the list as plain text; Switch profile is a row the same size as Settings
+  const card=m?'<div class="mcard"><span class="mav" aria-hidden="true">'+esc(ini)+'</span><span><b>'+esc(m.name)+'</b>'+(isViewer(m)?'<small class="inst2">Viewing only</small>':m.part?'<small class="inst2">'+esc(m.part)+'</small>':'')
+    +(rl.length?'<span class="mpills">'+rl.map(x=>'<span class="mpill">'+esc(x)+'</span>').join("")+'</span>':'')+'</span></div>':'';
+  const prof='<button type="button" class="mrow" id="switchAsk">'+IC_SWITCH+'<span>'+(m?"Switch profile":"Choose your name")+'</span><span class="chev" aria-hidden="true">›</span></button>';
+  box.innerHTML=card+'<div class="mgrp">'+prof+'<button type="button" class="mrow" id="sizeBtn">'+IC_GEAR+'<span>Settings</span><span class="chev" aria-hidden="true">›</span></button></div>'+rolesHtml()}
 // Switch profile asks first: signing out forgets this phone's name (and PIN), so a stray tap shouldn't do it
 function switchSheet(){const m=me();if(!m){$("pick").hidden=false;return}
   openSheet(pageTop("Switch profile","Menu")+'<p><b>Are you sure you want to sign out?</b></p><p class="sub">This phone will forget '+esc(m.name)+'. You\'ll choose your name again'+(pinOkFor(who)?' and enter your PIN':'')+'.</p>'
@@ -1227,7 +1233,7 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="7.2";
+window.__bandAppVer="7.4";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
@@ -1252,8 +1258,10 @@ function callNew(p){var b={};Object.keys(p).forEach(function(x){if(x!=="api"&&x!
     .then(function(r){if(r.status===401||r.status>=500)throw new Error("HTTP "+r.status);return r.json()})}
 function srvDown(){st.set(KDN,String(Date.now()));leaveNew()}
 // reads fall back to the Apps Script at once; a write that failed isn't sent twice: it fails, and the next try goes to the Apps Script
+// v7.3: a phone that is offline (navigator.onLine false) stays on the new server: nothing there is wrong, and moving
+// servers offline used to drop its alerts.
 function call(p){if(!onNew()||!EP[p.api])return callOld(p);
-  return callNew(p).catch(function(e){srvDown();if(p.api==="data")return callOld(p);throw e})}
+  return callNew(p).catch(function(e){if(navigator.onLine===false)throw e;srvDown();if(p.api==="data")return callOld(p);throw e})}
 // after every data load: move this phone to or from the new server as the Hub's tick says
 var srvBusy=false;
 function srvDecide(d){if(!NEW||srvBusy)return;var me=(d&&d.members||[]).filter(function(x){return x.id===whoNow()})[0];var want=!!(me&&me.srv==="new");
@@ -1321,7 +1329,9 @@ window.__bandRefresh=check;
 })();
 // Keep the data fresh without anyone tapping Refresh: when the app comes back on screen, and every 5 minutes while it is open.
 function due(ms){return Date.now()-(+st.get(KT)||0)>ms}
-document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&booted){if(due(20000))check();verCheck()}});
+var pushFixAt=Date.now();
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&booted){if(due(20000))check();verCheck();
+  if(window.__bandPush&&Date.now()-pushFixAt>3600000){pushFixAt=Date.now();setTimeout(function(){window.__bandPush.resync()},5000)}}});
 window.addEventListener("focus",function(){if(booted&&due(20000))check()});
 setInterval(function(){if(document.visibilityState!=="visible"||!booted)return;if(due(240000))check();verCheck()},300000);
 if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("message",function(e){if(e.data==="refresh"&&booted)check()});
@@ -1348,19 +1358,23 @@ var KP="band.push";
 function b64ToU8(s){s=s.replace(/-/g,"+").replace(/_/g,"/");s+="===".slice((s.length+3)%4);var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
 function pushPrefs(){try{return JSON.parse(st.get(KP)||"null")}catch(e){return null}}
 function reg(){return navigator.serviceWorker.ready}
-function sendSub(sub,prefs){var j=sub.toJSON();var on=Object.keys(prefs).filter(function(k){return prefs[k]}).join(",");
-  return call({api:"sub",k:st.get(KK)||"",m:whoNow(),ep:j.endpoint,p:j.keys.p256dh,a:j.keys.auth,prefs:on,test:"1"}).then(function(r){if(!r||!r.ok)throw new Error((r&&r.error)||"failed")})}
+function sendSub(sub,prefs,quiet){var j=sub.toJSON();var on=Object.keys(prefs).filter(function(k){return prefs[k]}).join(",");
+  var q={api:"sub",k:st.get(KK)||"",m:whoNow(),ep:j.endpoint,p:j.keys.p256dh,a:j.keys.auth,prefs:on};if(!quiet)q.test="1";
+  return call(q).then(function(r){if(!r||!r.ok)throw new Error((r&&r.error)||"failed")})}
 // the key phones subscribe with: the new server's own (it may differ from the Apps Script's), or the Apps Script's from the data
 function pushKey(isNew){if(!isNew)return Promise.resolve((window.__BAND_DATA__||{}).vapid||"");
   return fetch(NEW+"/v1/push/key",{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){return (j&&j.ok&&j.key)||""})}
 // Moving servers with alerts on: unsubscribe from the server being left (api=unsub or /v1/push/unsubscribe), drop the
 // phone's subscription, and subscribe again with the other server's key and on that server, so alerts come from one only.
-// Called after the switch (from = the server being left).
+// Called after the switch (from = the server being left). v7.3: the other server's key is fetched BEFORE anything is
+// dropped, so a failed fetch leaves the phone's alerts as they were; and if subscribing again fails, resync (below)
+// subscribes the phone again next time the app opens, instead of leaving alerts off.
 function movePush(from){var p=pushPrefs();if(!p||!("serviceWorker" in navigator))return Promise.resolve();
   return reg().then(function(r){return r.pushManager.getSubscription().then(function(sub){if(!sub)return;var ep=sub.toJSON().endpoint;
-    var un=from==="new"?callNew({api:"unsub",ep:ep}):callOld({api:"unsub",k:st.get(KK)||"",ep:ep});
-    return un.catch(function(){}).then(function(){return sub.unsubscribe()}).then(function(){return pushKey(onNew())}).then(function(key){if(!key)throw new Error("no key");
-      return r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(key)})}).then(function(s){return sendSub(s,p)})})})}
+    return pushKey(onNew()).then(function(key){if(!key)throw new Error("no key");
+      var un=from==="new"?callNew({api:"unsub",ep:ep}):callOld({api:"unsub",k:st.get(KK)||"",ep:ep});
+      return un.catch(function(){}).then(function(){return sub.unsubscribe()}).then(function(){
+        return r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(key)})}).then(function(s){return sendSub(s,p,true)})})})})}
 window.__bandPush={
   state:function(){var ok="serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
     var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -1376,7 +1390,13 @@ window.__bandPush={
   disable:function(){st.del(KP);if(!("serviceWorker" in navigator))return Promise.resolve();
     return reg().then(function(r){return r.pushManager.getSubscription()}).then(function(sub){if(!sub)return;var ep=sub.toJSON().endpoint;
       return call({api:"unsub",k:st.get(KK)||"",ep:ep}).catch(function(){}).then(function(){return sub.unsubscribe()})})},
-  resync:function(){var p=pushPrefs();if(!p||!("serviceWorker" in navigator))return;reg().then(function(r){return r.pushManager.getSubscription()}).then(function(sub){if(sub)return window.__bandPush.setPrefs(p)}).catch(function(){})}
+  // v7.3: alerts were turned on here but the phone has lost its subscription (a server move that failed part way, or the
+  // phone dropped it): subscribe again quietly, with no test alert, as long as alerts are still allowed for the app.
+  resync:function(){var p=pushPrefs();if(!p||!("serviceWorker" in navigator)||!("PushManager" in window))return Promise.resolve();
+    return reg().then(function(r){return r.pushManager.getSubscription().then(function(sub){if(sub)return window.__bandPush.setPrefs(p);
+      if(!("Notification" in window)||Notification.permission!=="granted")return;
+      return pushKey(onNew()).then(function(key){if(!key)throw new Error("no key");
+        return r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(key)})}).then(function(s){return sendSub(s,p,true)})})}).catch(function(){})}
 };
 $("gRetry").addEventListener("click",check);
 $("gForm").addEventListener("submit",function(ev){ev.preventDefault();var pw=$("gPw").value.trim();if(!pw)return;
