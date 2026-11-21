@@ -1233,7 +1233,7 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="7.5";
+window.__bandAppVer="7.6";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
@@ -1274,7 +1274,10 @@ function srvDecide(d){if(!NEW||srvBusy||!whoNow())return;var me=(d&&d.members||[
 function leaveNew(){var was=onNew();st.del(KS);var done=function(){st.del(KTK);st.del(KTM)};
   (was?movePush("new"):Promise.resolve()).catch(function(){}).then(done,done)}
 window.__bandSrv=function(){return {pilot:!!window.__bandSrvPilot,on:onNew()}};
-window.__bandSrvDecide=function(){srvDecide(window.__BAND_DATA__)};
+// v7.6: picking a name, or Refresh now, also ends the 6-hour hold a server error put on this phone, so a fault seen
+// once (perhaps under another profile) doesn't keep every profile on the old server for hours
+function srvRetry(){st.del(KDN)}
+window.__bandSrvDecide=function(){srvRetry();srvDecide(window.__BAND_DATA__)};
 // sending from the page goes through the same API, shaped like google.script.run
 function mk(ok,fail){return{withSuccessHandler:function(f){return mk(f,fail)},withFailureHandler:function(f){return mk(ok,f)},
   sendFromPage:function(n,d,id,note,mid){call({api:"send",k:st.get(KK)||"",n:n,d:d,id:id,note:note||"",m:mid||""}).then(function(r){
@@ -1316,7 +1319,7 @@ function start(){
   var c=st.get(KD);
   if(c&&st.get(KK)!==null){try{window.__bandStatus={checking:true};boot(JSON.parse(c))}catch(e){}}
   check()}
-window.__bandRefresh=check;
+window.__bandRefresh=function(){srvRetry();return check()};
 // Pull down from the top of the page to refresh, like other phone apps.
 (function(){var el=$("ptr"),y0=null,dy=0,PULL=70;
   function blocked(){return !booted||!$("gate").hidden||!$("pick").hidden||!$("sheet").hidden||(window.scrollY||document.documentElement.scrollTop)>0}
