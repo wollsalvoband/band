@@ -180,6 +180,17 @@ ol.mp li.band .mbtns{margin-top:8px}ol.mp li.band .mbtns .musb{margin-top:0}
 .mvh .yp{color:var(--ok);font-weight:700}
 .mvh .mvacts{display:flex;gap:8px;flex:none}
 .mvh .mvpr{width:56px;padding:0}.mvh .mvpr svg{width:28px;height:28px}
+.mvh{position:relative}
+.mvh .yp.oth{color:var(--wait)}
+/* v7.1: the menu button's pop-up: Print, then the parts this piece has music for (your own part first) */
+.mvpop{position:absolute;right:12px;top:calc(100% - 4px);z-index:2;width:min(300px,calc(100vw - 24px));max-height:calc(100vh - 140px);overflow:auto;background:var(--surface);border:2px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:12px;display:grid;gap:8px}
+.mvpop[hidden]{display:none}
+.mvpop .btn{width:100%}.mvpop .btn svg{width:24px;height:24px}
+.mvpl{display:grid;gap:8px}
+.mvpl .sec{margin:4px 0 0}
+.mvpo{appearance:none;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:52px;width:100%;padding:0 14px;border:2px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:700 1.05rem var(--f-body);text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mvpo[aria-current="true"]{border-color:var(--navy);background:var(--brass-soft)}
+.mvpo small{font-weight:400;color:var(--muted);font-size:.9rem}
 .mvb{flex:1;overflow:auto;background:#fff;padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));-webkit-overflow-scrolling:touch}
 .mvb img{display:block;width:100%;height:auto}
 .mvb .mvm{color:#36415c;text-align:center;padding:40px 10px;font-weight:700}
@@ -370,7 +381,7 @@ label.f{display:grid;gap:6px;font-weight:700}
 </nav>
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="pick" class="pick" hidden><div class="pickcard"><h1><small>Wollongong Salvos</small>Who are you?</h1><p class="muted">Choose your name once. This phone will remember it.</p><label class="f">Your name<select id="who"><option value="">Choose your name</option></select></label><button class="btn send" id="pickGo" disabled>Continue</button><p class="err" id="pickErr" role="alert" hidden></p></div></div>
-<div id="mv" class="mv" hidden role="dialog" aria-modal="true" aria-labelledby="mvT"><div class="mvh"><div><b id="mvT"></b><span id="mvS"></span><span class="yp" id="mvP"></span></div><div class="mvacts"><button type="button" class="btn brass mvpr" id="mvPrint" aria-label="Print" title="Print" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg></button><button type="button" class="btn navy" id="mvClose">Close</button></div></div><div class="mvn" id="mvN" hidden></div><div class="mvb" id="mvB"></div></div>
+<div id="mv" class="mv" hidden role="dialog" aria-modal="true" aria-labelledby="mvT"><div class="mvh"><div><b id="mvT"></b><span id="mvS"></span><span class="yp" id="mvP"></span></div><div class="mvacts"><button type="button" class="btn brass mvpr" id="mvMenu" aria-label="Print or choose a part" title="Print or choose a part" aria-haspopup="true" aria-expanded="false" aria-controls="mvPop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><button type="button" class="btn navy" id="mvClose">Close</button></div><div class="mvpop" id="mvPop" hidden><button type="button" class="btn brass" id="mvPrint" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Print this music</button><div class="mvpl" id="mvPl"></div></div></div><div class="mvn" id="mvN" hidden></div><div class="mvb" id="mvB"></div></div>
 <div id="sheet" class="sheet" hidden><div class="inner" id="sheetInner" role="dialog" aria-modal="true"></div></div>
 
 <style>
@@ -825,22 +836,42 @@ function rangeList(){const m=me(),f=$("rgF").value,t=$("rgT").value;const box=$(
     return '<li><label><input type="checkbox" data-rg="'+s+'"'+(rangeSel[s]?' checked':'')+(done?' disabled':'')+'><span class="tk"><b>'+esc(fmt(s,true))+'</b><small>'+(offOf(s)?esc(offOf(s).l):kindLabel(s))+(done?(e.st==="usual"?' · not usually on '+(kind(s)==="sun"?"Sundays":"Wednesdays"):' · already away'):'')+'</small></span></label></li>'}).join("")+'</ul>';
   updRangeBtn(ds.filter(i=>rangeSel[D.sessions[i]]&&eff(m,i).want!=="away").length)}
 function updRangeBtn(n){const b=document.querySelector("[data-rgo]");if(!b)return;b.disabled=!n;b.textContent=n?"Submit to Bandmaster for noting ("+n+" date"+(n>1?"s":"")+")":"No dates picked"}
-// the music viewer: asks the Apps Script for the player's own part (api=music) and shows it full screen
-const mvCache=new Map();let mvAt=0,mvPic="";
-async function viewMusic(b){const m=me();if(!m||!window.__bandApi)return;const id=b.dataset.mv,s=b.dataset.s,q=partOn(m,s),at=++mvAt;mvPic=id;
-  const nom=((D.alloc||{})[s]||{})[m.id];
-  $("mvT").textContent=b.dataset.t;$("mvS").textContent=(b.dataset.i?b.dataset.i+" · ":"")+fmt(s,true);
-  $("mvP").textContent=q==="Bandmaster"?"The Bandmaster's part":(nom?"Your part on "+fmt(s,true)+": ":"Your part: ")+q;
+// the music viewer: asks the Apps Script for the player's own part (api=music) and shows it full screen.
+// v7.1: the menu button (beside Close) holds Print and the other parts this piece has music for (D.pics), so a player can
+// look at another part. It always opens on their own part. The heading has no date, to leave the music more room.
+const mvCache=new Map();let mvAt=0,mvPic="",mvCur=null;
+// the parts in the menu: their own first, then the band's order (the order of the members who play them), then the rest A-Z.
+// "Bandmaster" and "Trombone" (a flexible player's 1st or 2nd) only ever stand for other parts, so they're left out.
+function mvParts(id,own){const have=((D.pics||{})[id]||[]).filter(p=>p!=="Bandmaster"&&p!=="Trombone"),rank={};
+  D.members.forEach((x,i)=>{if(x.part&&!(x.part in rank))rank[x.part]=i});
+  const r=p=>p in rank?rank[p]:1e6;
+  return have.filter(p=>p!==own).sort((a,b)=>r(a)-r(b)||a.localeCompare(b))}
+function partLabel(q){return q==="Bandmaster"?"The Bandmaster's part":q}
+function viewMusic(b){const m=me();if(!m||!window.__bandApi)return;const s=b.dataset.s,own=partOn(m,s);
+  mvCur={id:b.dataset.mv,s:s,t:b.dataset.t,i:b.dataset.i||"",own:own};
+  $("mvT").textContent=mvCur.t;$("mvS").textContent=mvCur.i;$("mvS").hidden=!mvCur.i;
+  $("mv").hidden=false;document.body.style.overflow="hidden";$("mvClose").focus({preventScroll:true});
+  showPart(own)}
+async function showPart(q){const m=me(),c=mvCur;if(!m||!c)return;const id=c.id,at=++mvAt,mine=q===c.own;mvPic=id;c.q=q;mvMenu(false);
+  $("mvP").textContent=mine?(q==="Bandmaster"?"The Bandmaster's part":"Your part: "+q):"Not yours: "+q;$("mvP").classList.toggle("oth",!mine);
   const fill=q==="Percussion"?(D.picFill||{})[id]:"";$("mvN").hidden=!fill;$("mvN").innerHTML=fill?'No percussion part<small>This is the '+esc(fill)+' part</small>':'';   // page text: the picture stays as printed
-  $("mvB").innerHTML='<p class="mvm">Opening the music…</p>';$("mvPrint").disabled=true;$("mv").hidden=false;document.body.style.overflow="hidden";$("mvClose").focus({preventScroll:true});
+  $("mvB").innerHTML='<p class="mvm">Opening the music…</p>';$("mvPrint").disabled=true;
   const k=id+"|"+q;let src=mvCache.get(k);
-  try{if(!src){const r=await window.__bandApi({api:"music",m:m.id,d:s,id:id});
+  try{if(!src){const r=await window.__bandApi(Object.assign({api:"music",m:m.id,d:c.s,id:id},mine?{}:{part:q}));
       if(!r||!r.ok||!r.b64)throw new Error(r&&r.error==="none"?"none":"failed");
       src="data:"+(/^image\/(png|jpeg)$/.test(r.mime||"")?r.mime:"image/png")+";base64,"+r.b64;mvCache.set(k,src)}
     if(at!==mvAt||$("mv").hidden)return;
-    $("mvB").innerHTML='<img alt="Music for '+esc(b.dataset.t)+'" src="'+src+'">';$("mvPrint").disabled=false}
+    $("mvB").innerHTML='<img alt="Music for '+esc(c.t)+'" src="'+src+'">';$("mvPrint").disabled=false}
   catch(err){if(at!==mvAt||$("mv").hidden)return;
-    $("mvB").innerHTML='<p class="mvm err">'+(err.message==="none"?"This music isn't ready for your part yet.":"Couldn't open the music. Check you're connected to the internet, then try again.")+'</p>'}}
+    $("mvB").innerHTML='<p class="mvm err">'+(err.message==="none"?"This music isn't ready for "+(mine?"your":"that")+" part yet.":"Couldn't open the music. Check you're connected to the internet, then try again.")+'</p>'}}
+// open or close the menu's pop-up. The parts are listed afresh each time it opens.
+function mvMenu(open){const pop=$("mvPop"),btn=$("mvMenu"),c=mvCur;
+  if(open&&c){const own=c.own,ownHas=((D.pics||{})[c.id]||[]).includes(own),cur=c.q||own;
+    const row=(p,mineRow)=>'<button type="button" class="mvpo" data-mvp="'+esc(p)+'"'+(p===cur?' aria-current="true"':'')+'><span>'+esc(partLabel(p))+'</span>'+(mineRow?'<small>Your part</small>':'')+'</button>';
+    const others=mvParts(c.id,own);
+    $("mvPl").innerHTML=(ownHas||others.length?'<div class="sec">Show a different part</div>':'')+(ownHas?row(own,true):'')+others.map(p=>row(p,false)).join("")}
+  pop.hidden=!open;btn.setAttribute("aria-expanded",String(!!open));
+  if(open){const f=$("mvPrint").disabled?pop.querySelector(".mvpo"):$("mvPrint");if(f)f.focus({preventScroll:true})}}
 // PRINT (v6.0: the printer button beside Close): an A4 PDF of the music on screen (the piece, the part, then the picture as large as fits), like the Hub's Print.
 // jsPDF loads only when the printer button is tapped. The tab is opened straight away so the phone doesn't block it; if it can't open, the PDF downloads.
 const JSPDF_URL="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";let jspdfP=null;
@@ -862,7 +893,8 @@ function a4Pdf(J,img,pages,head){const land=pages[0].w>pages[0].h,or=land?"lands
     const k=Math.min((PW-2*M)/p.w,(PH-2*M-T)/p.h),w=p.w*k,h=p.h*k;
     doc.addImage(c.toDataURL("image/jpeg",0.9),"JPEG",(PW-w)/2,M+T,w,h,undefined,"FAST")});
   return doc}
-async function printMusic(){const img=$("mvB").querySelector("img"),b=$("mvPrint");if(!img||!img.naturalWidth){showMsg("Wait a moment","Tap the printer button once the music is showing.");return}
+async function printMusic(){const img=$("mvB").querySelector("img"),b=$("mvPrint");mvMenu(false);if(!img||!img.naturalWidth){showMsg("Wait a moment","Tap Print once the music is showing.");return}
+  const sub=(mvCur&&mvCur.i?mvCur.i+" · ":"")+(mvCur?fmt(mvCur.s,true):""),pt=mvCur&&mvCur.q&&mvCur.q!==mvCur.own?mvCur.q:$("mvP").textContent;   // the PDF names the part, and the date
   let win=null;try{win=window.open("","_blank")}catch(e){}
   if(win){try{win.document.title="Making the PDF…";win.document.body.innerHTML='<p style="font:700 1.3rem sans-serif;padding:30px;text-align:center">Making the PDF…</p>'}catch(e){}}
   b.disabled=true;b.setAttribute("aria-label","Making the PDF…");
@@ -870,10 +902,10 @@ async function printMusic(){const img=$("mvB").querySelector("img"),b=$("mvPrint
     let src=img.src,ft=(src.match(/^data:image\/(png|jpe?g)/i)||[])[1];
     if(!ft){const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext("2d").drawImage(img,0,0);src=c.toDataURL("image/png");ft="png"}
     const title=$("mvT").textContent,sp=a4Pages(mvPic,img.naturalWidth,img.naturalHeight);let doc;
-    if(sp&&$("mvN").hidden)doc=a4Pdf(J,img,sp,title+" - "+$("mvS").textContent+" - "+$("mvP").textContent);
+    if(sp&&$("mvN").hidden)doc=a4Pdf(J,img,sp,title+" - "+sub+" - "+pt);
     else{doc=new J({unit:"mm",format:"a4"});const PW=210,PH=297,M=12,W=PW-2*M;let y=M;
     doc.setFont("helvetica","bold");doc.setFontSize(16);doc.setTextColor(0);const tl=doc.splitTextToSize(pdfSafe(title),W);doc.text(tl,M,y+5);y+=tl.length*7+1;
-    doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(80);const sl=doc.splitTextToSize(pdfSafe($("mvS").textContent+" - "+$("mvP").textContent),W);doc.text(sl,M,y+3);y+=sl.length*4.5+3;
+    doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(80);const sl=doc.splitTextToSize(pdfSafe(sub+" - "+pt),W);doc.text(sl,M,y+3);y+=sl.length*4.5+3;
     if(!$("mvN").hidden){doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(0);doc.text(pdfSafe("No percussion part. "+$("mvN").querySelector("small").textContent),M,y+3);y+=7}
     const k=Math.min(W/img.naturalWidth,(PH-M-10-y)/img.naturalHeight),w=img.naturalWidth*k,h=img.naturalHeight*k;
     doc.addImage(src,/png/i.test(ft)?"PNG":"JPEG",M+(W-w)/2,y,w,h,undefined,"FAST")}
@@ -882,9 +914,10 @@ async function printMusic(){const img=$("mvB").querySelector("img"),b=$("mvPrint
     if(!shown){const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();showMsg("PDF saved","Look in your downloads to print it.")}
     setTimeout(()=>URL.revokeObjectURL(url),120000)}
   catch(err){if(win&&!win.closed)try{win.close()}catch(e){}showMsg("Couldn't make the PDF","Check you're connected to the internet, then try again.")}
-  finally{b.setAttribute("aria-label","Print");b.disabled=!$("mvB").querySelector("img")}}
-function closeMusic(){mvAt++;$("mv").hidden=true;$("mvB").innerHTML="";document.body.style.overflow=""}
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mv").hidden){e.stopPropagation();closeMusic()}},true);
+  finally{b.removeAttribute("aria-label");b.disabled=!$("mvB").querySelector("img")}}
+function closeMusic(){mvAt++;mvMenu(false);mvCur=null;$("mv").hidden=true;$("mvB").innerHTML="";document.body.style.overflow=""}
+// Escape closes the menu first, then the music
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("mv").hidden){e.stopPropagation();if(!$("mvPop").hidden){mvMenu(false);$("mvMenu").focus()}else closeMusic()}},true);
 function recSheet(r){const url=String(r.l||"").trim();let body="";
   const yt=ytId(url);
   if(yt)body='<div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/'+yt.id+'?rel=0&playsinline=1&autoplay=1&mute=1&enablejsapi=1'+(yt.start?'&start='+yt.start:'')+'" id="recVid" title="'+esc(r.t)+'" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><button type="button" class="snd" id="recSnd"><span><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Tap for sound</span></button></div><a class="btn wide" href="'+esc(url)+'" target="_blank" rel="noopener">Open in YouTube</a><p class="small muted">If the video won\'t play here, tap Open in YouTube.</p>';
@@ -1074,7 +1107,10 @@ document.addEventListener("click",e=>{
   const mvb=t.closest("button[data-mv]");if(mvb){viewMusic(mvb);return}
   const wdb=t.closest("button[data-wk]");if(wdb){openWords(wdb);return}
   if(t.closest("#mvClose")){closeMusic();return}
+  if(t.closest("#mvMenu")){mvMenu($("mvPop").hidden);return}
   if(t.closest("#mvPrint")){printMusic();return}
+  const pb=t.closest("button[data-mvp]");if(pb){if(mvCur&&pb.dataset.mvp!==mvCur.q)showPart(pb.dataset.mvp);else mvMenu(false);return}
+  if(!$("mvPop").hidden&&!t.closest("#mvPop")){mvMenu(false);return}
   const nb=t.closest("button[data-noted]");if(nb){const n=(D.notes||[]).find(x=>x.id===nb.dataset.noted);if(!n)return;markNoted(n);return}
   const vb=t.closest("button[data-view]");if(vb){dview=vb.dataset.view;renderDates();return}
   const cm=t.closest("button[data-cm]");if(cm){const months=calMonths(upcoming());const k=months.indexOf(calM)+(+cm.dataset.cm);if(months[k]){calM=months[k];calSel=null;calPast=null}renderDates();return}
@@ -1178,7 +1214,7 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="7.0";
+window.__bandAppVer="7.1";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
