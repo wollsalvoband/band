@@ -1172,7 +1172,7 @@ sel.innerHTML+=D.members.filter(m=>m.player||m.viewer).slice().sort((a,b)=>pickR
 sel.addEventListener("change",()=>{$("pickGo").disabled=!sel.value;pickErr("")});
 function pickDone(id){who=id;store.set("band.who",who);store.set("band.whoSince",D.pwSince||"");if(!(memberById(id)||{}).test)store.set("band.lastWho",id);$("pick").hidden=true;
   const seen=store.get("band.noted",{}),m=me();if(m)myNotes().forEach(n=>{if(seen[n.id]===n.v)markNoted(n)});   // notes read before picking a name
-  loadNotedFor();renderAll();window.scrollTo(0,0);if(window.__bandPush)window.__bandPush.resync()}
+  loadNotedFor();renderAll();window.scrollTo(0,0);if(window.__bandSrvDecide)window.__bandSrvDecide();if(window.__bandPush)window.__bandPush.resync()}
 // ---- role pick: start ----
 function pickErr(t){const el=$("pickErr");el.textContent=t;el.hidden=!t}
 // Anyone holding a role that needs a PIN (D.pinRoles) enters their PIN to get in, unless this phone already holds it.
@@ -1233,7 +1233,7 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="7.4";
+window.__bandAppVer="7.5";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
@@ -1262,9 +1262,11 @@ function srvDown(){st.set(KDN,String(Date.now()));leaveNew()}
 // servers offline used to drop its alerts.
 function call(p){if(!onNew()||!EP[p.api])return callOld(p);
   return callNew(p).catch(function(e){if(navigator.onLine===false)throw e;srvDown();if(p.api==="data")return callOld(p);throw e})}
-// after every data load: move this phone to or from the new server as the Hub's tick says
+// after every data load, and (v7.5) as soon as a name is picked: move this phone to or from the new server as the Hub's
+// tick says for whoever is signed in. While nobody is (the name list after Switch profile), nothing changes: before v7.5 a
+// data load there took the phone off the new server, and picking a name didn't look again until the next data load.
 var srvBusy=false;
-function srvDecide(d){if(!NEW||srvBusy)return;var me=(d&&d.members||[]).filter(function(x){return x.id===whoNow()})[0];var want=!!(me&&me.srv==="new");
+function srvDecide(d){if(!NEW||srvBusy||!whoNow())return;var me=(d&&d.members||[]).filter(function(x){return x.id===whoNow()})[0];var want=!!(me&&me.srv==="new");
   window.__bandSrvPilot=want;
   if(want&&!onNew()){if(Date.now()-(+st.get(KDN)||0)<DOWN_MS)return;srvBusy=true;
     signIn().then(function(ok){if(!ok)return;st.set(KS,"new");return movePush("old")}).catch(function(){}).then(function(){srvBusy=false})}
@@ -1272,6 +1274,7 @@ function srvDecide(d){if(!NEW||srvBusy)return;var me=(d&&d.members||[]).filter(f
 function leaveNew(){var was=onNew();st.del(KS);var done=function(){st.del(KTK);st.del(KTM)};
   (was?movePush("new"):Promise.resolve()).catch(function(){}).then(done,done)}
 window.__bandSrv=function(){return {pilot:!!window.__bandSrvPilot,on:onNew()}};
+window.__bandSrvDecide=function(){srvDecide(window.__BAND_DATA__)};
 // sending from the page goes through the same API, shaped like google.script.run
 function mk(ok,fail){return{withSuccessHandler:function(f){return mk(f,fail)},withFailureHandler:function(f){return mk(ok,f)},
   sendFromPage:function(n,d,id,note,mid){call({api:"send",k:st.get(KK)||"",n:n,d:d,id:id,note:note||"",m:mid||""}).then(function(r){
