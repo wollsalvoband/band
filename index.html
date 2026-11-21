@@ -182,6 +182,10 @@ ol.mp li.band .mbtns{margin-top:8px}ol.mp li.band .mbtns .musb{margin-top:0}
 .mvh .mvpr{width:56px;padding:0}.mvh .mvpr svg{width:28px;height:28px}
 .mvh{position:relative}
 .mvh .yp.oth{color:var(--wait)}
+.mvh .yp.vw{color:var(--ink)}   /* a viewer's part: just the part, not "yours" */
+/* v7.2: viewing-only members */
+.vbar{background:var(--surface);border:2px solid var(--line);border-left:6px solid var(--navy);border-radius:14px;padding:12px 14px}
+.vbar b{display:block;font-size:1.1rem}.vbar span{display:block;color:var(--muted)}
 /* v7.1: the menu button's pop-up: Print, then the parts this piece has music for (your own part first) */
 .mvpop{position:absolute;right:12px;top:calc(100% - 4px);z-index:2;width:min(300px,calc(100vw - 24px));max-height:calc(100vh - 140px);overflow:auto;background:var(--surface);border:2px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.3);padding:12px;display:grid;gap:8px}
 .mvpop[hidden]{display:none}
@@ -525,14 +529,17 @@ function eff(m,i){const s=D.sessions[i],c=m.cells[i],q=queued(m.id,s),it=(intent
   else st=(!pend&&c==="")?"in":(pend&&["","p"].includes(pend.base!==undefined?pend.base:c))?"in":"insent";
   return {want,st}}
 const ST={in:["You're In",""],away:["You're away",""],awaysent:["Away. Sent for Bandmaster","You'll see a red cross once it's noted"],insent:["You're In. Sent for Bandmaster","You'll see a green tick once it's noted"],usual:["Not usually on ",""]};
-function statusHtml(m,i){const e=eff(m,i);let t=ST[e.st][0];if(e.st==="usual")t+=kind(D.sessions[i])==="sun"?"Sundays":"Wednesdays";
+// v7.2: a viewing-only member (m.viewer, the Hub's "Viewing only" tick) isn't a player: no status, no In / away buttons,
+// no Update Multiple Dates, Close instead of Noted, no replies. The servers refuse their send, Noted and reply too.
+const isViewer=m=>!!(m&&m.viewer);
+function statusHtml(m,i){if(isViewer(m))return "";const e=eff(m,i);let t=ST[e.st][0];if(e.st==="usual")t+=kind(D.sessions[i])==="sun"?"Sundays":"Wednesdays";
   const ic=e.st==="in"?ICON.in:e.st==="away"?ICON.away:e.st==="usual"?ICON.usual:ICON.sent;
   return '<div class="st '+e.st+'">'+ic+'<span>'+esc(t)+(ST[e.st][1]?'<small>'+ST[e.st][1]+'</small>':'')+'</span></div>'}
-function pairHtml(m,i){const w=eff(m,i).want;
+function pairHtml(m,i){if(isViewer(m))return "";const w=eff(m,i).want;
   return '<div class="pair"><button type="button" class="btn yes" data-set="in" data-i="'+i+'" aria-pressed="'+(w==="in")+'">I\'ll be there</button><button type="button" class="btn no" data-set="away" data-i="'+i+'" aria-pressed="'+(w==="away")+'">I\'m away</button></div>'}
 const shortName=n=>{const w=String(n).trim().split(/\s+/);return w.length>1?w[0]+" "+w[w.length-1][0]:w[0]};
 function awayHtml(m,i){const a=[];if(eff(m,i).want==="away")a.push("You");
-  D.members.forEach(x=>{if(x.id!==m.id&&!x.test&&["x","p","s"].includes(x.cells[i]))a.push(shortName(x.name))});
+  D.members.forEach(x=>{if(x.id!==m.id&&!x.test&&!x.viewer&&["x","p","s"].includes(x.cells[i]))a.push(shortName(x.name))});
   return '<div class="who"><b>Away:</b> '+(a.length?esc(a.join(", ")):"Nobody")+'</div>'}
 // HTML: the event title is escaped here, since every place that shows it builds HTML
 const kindLabel=s=>kind(s)==="ev"?esc((xOf(s)||{}).t||"Band event")+(xWhen(xOf(s))?" · "+hm12(xOf(s).s):""):kind(s)==="sun"?"Sunday meeting":"Practice";
@@ -544,7 +551,7 @@ let recs=[];
 // flexible player (D.alloc), else their own part. D.pics lists the parts with a picture, so a player only gets a View
 // button for their own part, and api=music only sends that part. Only in the band app (the Apps Script sends the picture).
 const partOn=(m,s)=>((D.alloc||{})[s]||{})[m.id]||m.part||"";
-function viewBtn(p,s,t,i){const m=me();if(!p||!m||!window.__bandApi||!((D.pics||{})[p]||[]).includes(partOn(m,s)))return "";
+function viewBtn(p,s,t,i){const m=me();if(!p||!m||!window.__bandApi||!(isViewer(m)?mvParts(p,"").length:((D.pics||{})[p]||[]).includes(partOn(m,s))))return "";
   return '<button type="button" class="musb" data-mv="'+esc(p)+'" data-s="'+s+'" data-t="'+esc(t)+'" data-i="'+esc(i||"")+'" aria-label="View your music for '+esc(t)+'">'+ICON.note+'View</button>'}
 // on a past date, poSun is the Sunday a play-out was planned for, so its label names the date. s = the date (for the part)
 // Words (v5.6): wk = the key of the piece's Words in D.words, opened in big print
@@ -607,10 +614,10 @@ const PST={in:"You were In",away:"You were away",usual:"Not usually on "};
 function pastCardHtml(m,s){const PP=D.past||{},pj=(PP.sessions||[]).indexOf(s),live=pj<0,PD=live?(D.music||{}):PP,
   j=live?D.sessions.indexOf(s):pj,ck=live?"cells":"pcells",off=offOf(s),c=(m[ck]||[])[j];
   const st=["x","p"].includes(c)?"away":c==="s"?"usual":"in",away=["x","p","s"].includes(c)?["You"]:[];
-  D.members.forEach(x=>{if(x.id!==m.id&&!x.test&&["x","p","s"].includes((x[ck]||[])[j]))away.push(shortName(x.name))});
+  D.members.forEach(x=>{if(x.id!==m.id&&!x.test&&!x.viewer&&["x","p","s"].includes((x[ck]||[])[j]))away.push(shortName(x.name))});
   return '<article class="dc past'+(kind(s)==="ev"?' evc':'')+'" data-s="'+s+'"><div class="dh"><span class="dd">'+fmt(s,true)+'</span>'+(off?'':'<span class="dk">'+kindLabel(s)+'</span>')+evHtml(s)+'<span class="ptag">Past</span></div>'
    +(off?'<div class="offst">'+esc(off.l)+(off.n?'<small>'+esc(off.n)+'</small>':'')+'</div>'
-     :'<div class="st '+st+'">'+ICON[st]+'<span>'+esc(PST[st]+(st==="usual"?(kind(s)==="sun"?"Sundays":"Wednesdays"):""))+'</span></div>'+fullMusicHtml(s,PD,"No music shown for this date",true)
+     :(isViewer(m)?'':'<div class="st '+st+'">'+ICON[st]+'<span>'+esc(PST[st]+(st==="usual"?(kind(s)==="sun"?"Sundays":"Wednesdays"):""))+'</span></div>')+fullMusicHtml(s,PD,"No music shown for this date",true)
       +'<div class="who"><b>Away:</b> '+(away.length?esc(away.join(", ")):"Nobody")+'</div>')
    +visHtml(s)+'</article>'}
 function visHtml(s){const v=(D.visitors||{})[s]||[];
@@ -624,11 +631,12 @@ function renderWeek(){const m=me();recs=[];
   // and any extra events up to the later of those two days (or the coming 7 days when there is neither)
   const last=[wi,si].filter(i=>i!=null).map(i=>D.sessions[i].slice(0,10)).sort().pop()||iso(new Date(Date.now()+6*86400000));
   const xs=up.filter(i=>kind(D.sessions[i])==="ev"&&D.sessions[i].slice(0,10)<=last);
-  $("week").innerHTML=[wi,si,...xs].filter(i=>i!=null).sort((a,b)=>a-b).map(i=>cardHtml(m,i,true)).join("")||'<p class="muted">No band dates coming up.</p>'}
+  $("week").innerHTML=(isViewer(m)?VBAR:"")+([wi,si,...xs].filter(i=>i!=null).sort((a,b)=>a-b).map(i=>cardHtml(m,i,true)).join("")||'<p class="muted">No band dates coming up.</p>')}
+const VBAR='<div class="vbar" role="note"><b>You\'re viewing only</b><span>You can see everything, but you aren\'t on the band\'s player list.</span></div>';
 function renderDates(){const m=me(),area=$("myarea");
   for(const b of document.querySelectorAll("[data-view]"))b.setAttribute("aria-pressed",String(b.dataset.view===dview));
   const dva=$("devoArea");if(!m){area.innerHTML="";if(dva)dva.innerHTML="";return}
-  const up=upcoming(),banner="";if(dva)dva.innerHTML=devoBanner(m);
+  const up=upcoming(),banner="";if(dva)dva.innerHTML=devoBanner(m);$("rangeBtn").parentNode.hidden=isViewer(m);if(dva&&isViewer(m))dva.innerHTML="";
   if(dview==="cal"){area.innerHTML=banner+calHtml(m,up);return}
   // 10 dates, then 10 more with each tap of Show more dates, up to the 12 months the app has
   const list=up.slice(0,shown);let h="",mon=null;
@@ -668,10 +676,10 @@ function calHtml(m,up){const past=pastDates(up);if(!up.length&&!past.length)retu
   for(let d=1;d<=days;d++){const s=calM+"-"+String(d).padStart(2,"0"),i=byIso[s];
     if(i==null&&pastBy[s]){const off=offOf(s),pk=pastBy[s];g+='<button type="button" class="d past'+(off?' off':'')+(calPast&&calPast.slice(0,10)===s?' sel':'')+'" data-pday="'+pk+'" aria-label="'+esc(fmtLong(s))+', '+esc(off?off.l:"past date")+'">'+d+(off?'<small aria-hidden="true">No band</small>':'')+'</button>'}
     else if(i==null)g+='<span class="d">'+d+'</span>';
-    else{const e=eff(m,i),off=offOf(s);g+='<button type="button" class="d '+e.st+(off?' off':'')+(i===calSel?' sel':'')+'" data-day="'+i+'" aria-label="'+esc(fmtLong(s))+', '+esc(off?off.l:ST[e.st][0])+'">'+d+(off?'<small aria-hidden="true">No band</small>':'')+'</button>'}}
+    else{const e=isViewer(m)?{st:"vo"}:eff(m,i),off=offOf(s);g+='<button type="button" class="d '+e.st+(off?' off':'')+(i===calSel?' sel':'')+'" data-day="'+i+'" aria-label="'+esc(fmtLong(s))+', '+esc(off?off.l:e.st==="vo"?"band date":ST[e.st][0])+'">'+d+(off?'<small aria-hidden="true">No band</small>':'')+'</button>'}}
   const pi=months.indexOf(calM);
   return '<div class="cal"><div class="ch"><button type="button" class="ib" data-cm="-1" aria-label="Previous month"'+(pi<=0?' disabled':'')+'>‹</button><b>'+MONL[mo-1]+' '+y+'</b><button type="button" class="ib" data-cm="1" aria-label="Next month"'+(pi>=months.length-1?' disabled':'')+'>›</button></div>'
-   +'<div class="grid7">'+g+'</div><div class="leg"><span><i style="background:var(--ok-soft);border:1px solid var(--ok)"></i>In</span><span><i style="background:var(--bad)"></i>Away</span><span><i style="border:2px dashed var(--wait)"></i>Sent</span>'+(pM.length?'<span><i style="background:var(--off);border:2px solid var(--line)"></i>Past</span>':'')+(inM.some(i=>offOf(D.sessions[i]))?'<span><i style="background:var(--off);border:2px dashed var(--off-line)"></i>No band</span>':'')+'</div></div>'
+   +'<div class="grid7">'+g+'</div><div class="leg">'+(isViewer(m)?'':'<span><i style="background:var(--ok-soft);border:1px solid var(--ok)"></i>In</span><span><i style="background:var(--bad)"></i>Away</span><span><i style="border:2px dashed var(--wait)"></i>Sent</span>')+(pM.length?'<span><i style="background:var(--off);border:2px solid var(--line)"></i>Past</span>':'')+(inM.some(i=>offOf(D.sessions[i]))?'<span><i style="background:var(--off);border:2px dashed var(--off-line)"></i>No band</span>':'')+'</div></div>'
    +(calPast?past.filter(k=>k.slice(0,10)===calPast.slice(0,10)).map(k=>pastCardHtml(m,k)).join(""):calSel!=null?up.filter(j=>D.sessions[j].slice(0,10)===D.sessions[calSel].slice(0,10)).map(j=>cardHtml(m,j,false)).join(""):'')}
 // Every note asks for Noted (ack only adds one reminder), and can offer answers to tap (rs.k "one" or "many") or take a written reply (rs.k "text").
 // Sending a reply also counts as Noted. A member only ever sees their own reply (D.myReplies, or the one just sent).
@@ -687,7 +695,8 @@ function replyForm(n){const sel=rsel[n.id]||(rsel[n.id]={c:[],t:""}),k=n.rs.k;
 function noteHtml(n,btn){const r=n.rs?myReply(n):null;
   let h='<div class="msg'+(btn?'':' read')+'"><span class="from">'+(n.devo?'Just for you · Devotions':n.fp&&btn?'Just for you · Your part':n.to?'Just for you':btn?'From the Bandmaster':'Read')+(n.date?' · '+esc(fmt(n.date,true)):'')+'</span><div class="nt">'+(n.fp?esc(n.fp.l)+'<br><b class="fpp">'+esc(n.fp.p)+'</b>':linky(n.text))+'</div>';
   if(r)h+='<div class="mine"><b>Your reply</b> · '+esc(whenText(new Date(r.at)))+'<div>'+esc(replyText(n,r))+'</div><small>Sent for Bandmaster</small></div>';
-  if(btn){if(n.rs&&!n.cl&&!r)h+=replyForm(n)+'<p class="orline">or</p>';
+  if(btn&&isViewer(me())){if(n.rs&&!n.cl)h+='<p class="sub">Only players reply to this.</p>';h+='<button type="button" class="btn" data-noted="'+esc(n.id)+'">Close</button>'}
+  else if(btn){if(n.rs&&!n.cl&&!r)h+=replyForm(n)+'<p class="orline">or</p>';
     h+=(n.devo&&n.ack&&!n.cl?'<div class="ask">Please tap Noted so the Devotions Coordinator knows you\'ve seen it.</div>':'')+'<button type="button" class="btn brass" data-noted="'+esc(n.id)+'">Noted</button>'}
   else if(n.rs&&n.cl&&!r)h+='<p class="sub">Replies have closed.</p>';
   return h+'</div>'}
@@ -724,7 +733,8 @@ function notesSplit(){const N=myNotes(),seen=store.get("band.noted",{}),srv=serv
 function flushNoted(){const g=gsr(),q=store.get("band.notedQ",[]);if(!g||typeof g.notedFromPage!=="function"||!q.length)return;
   q.forEach(x=>{g.withSuccessHandler(r=>{if(r&&r.ok===false)return;const k=store.get("band.notedQ",[]).filter(y=>!(y.m===x.m&&y.id===x.id&&y.v===x.v));store.set("band.notedQ",k)}).withFailureHandler(()=>{}).notedFromPage(x.m,x.id,x.v)})}
 function markNoted(n){const seen=store.get("band.noted",{});seen[n.id]=n.v;store.set("band.noted",seen);const m=me();
-  if(m){const q=store.get("band.notedQ",[]).filter(y=>!(y.m===m.id&&y.id===n.id));q.push({m:m.id,id:n.id,v:n.v});store.set("band.notedQ",q.slice(-40));flushNoted()}
+  // a viewer's Close stays on this phone: never sent, so they're never in the Noted counts
+  if(m&&!isViewer(m)){const q=store.get("band.notedQ",[]).filter(y=>!(y.m===m.id&&y.id===n.id));q.push({m:m.id,id:n.id,v:n.v});store.set("band.notedQ",q.slice(-40));flushNoted()}
   renderNotes()}
 function loadNotedFor(){const g=gsr();if(window.__bandGsr||!g||typeof g.notedFor!=="function")return;const m=me();if(!m)return;
   g.withSuccessHandler(o=>{if(o&&typeof o==="object"){window.__notedFor=o;renderNotes()}}).withFailureHandler(()=>{}).notedFor(m.id)}
@@ -818,7 +828,7 @@ function confirmSheet(i,want){const s=D.sessions[i],x=xOf(s);pendingSet={i,want}
 function noteBox(want){return '<label class="fl" for="bNote"><span>Note for the Bandmaster <span class="opt">(optional)</span></span><textarea id="bNote" rows="2" maxlength="300" placeholder="'+(want==="away"?"For example, back for Thursday practice":"For example, I can bring the stands")+'"></textarea></label>'}
 function noteVal(){const n=$("bNote");return n?n.value.replace(/\s+/g," ").trim().slice(0,300):""}
 function reasonVal(){if(reason!=="Other")return reason;const o=$("rOther");return (o&&o.value.trim())||"Other"}
-function rangeSheet(){const m=me();if(!m)return;reason="";
+function rangeSheet(){const m=me();if(!m||isViewer(m))return;reason="";
   const t=new Date(),f=iso(t),l=iso(new Date(t.getFullYear(),t.getMonth(),t.getDate()+14));
   openSheet(pageTop("Update Multiple Dates","My dates","data-rgback")+'<div class="two"><label class="fl">First day away<input type="date" id="rgF" value="'+f+'"></label><label class="fl">Day you\'re back<input type="date" id="rgT" value="'+l+'"></label></div><div id="rgList"></div><div class="sec">Reason (optional)</div><div id="rbox">'+reasonsHtml()+'</div>'+noteBox("away")+'<button type="button" class="btn brass" data-rgo>Submit to Bandmaster for noting</button><button type="button" class="btn" data-close>Cancel the change</button>'
    +'<div class="leave" id="rgLeave" hidden><div class="leavecard" role="alertdialog" aria-labelledby="rgLvT"><h2 id="rgLvT">Leave without saving?</h2><p class="sub">The dates you entered won\'t be sent to the Bandmaster.</p><button type="button" class="btn brass" data-close>Leave without saving</button><button type="button" class="btn" data-rgstay>Keep editing</button></div></div>',"range");
@@ -847,13 +857,15 @@ function mvParts(id,own){const have=((D.pics||{})[id]||[]).filter(p=>p!=="Bandma
   const r=p=>p in rank?rank[p]:1e6;
   return have.filter(p=>p!==own).sort((a,b)=>r(a)-r(b)||a.localeCompare(b))}
 function partLabel(q){return q==="Bandmaster"?"The Bandmaster's part":q}
-function viewMusic(b){const m=me();if(!m||!window.__bandApi)return;const s=b.dataset.s,own=partOn(m,s);
+// a viewer has no part of their own: their music opens on Solo Cornet, or the first part this piece has
+function viewerPart(id){const L=mvParts(id,"");return L.includes("Solo Cornet")?"Solo Cornet":L[0]||"Solo Cornet"}
+function viewMusic(b){const m=me();if(!m||!window.__bandApi)return;const s=b.dataset.s,own=isViewer(m)?viewerPart(b.dataset.mv):partOn(m,s);
   mvCur={id:b.dataset.mv,s:s,t:b.dataset.t,i:b.dataset.i||"",own:own};
   $("mvT").textContent=mvCur.t;$("mvS").textContent=mvCur.i;$("mvS").hidden=!mvCur.i;
   $("mv").hidden=false;document.body.style.overflow="hidden";$("mvClose").focus({preventScroll:true});
   showPart(own)}
-async function showPart(q){const m=me(),c=mvCur;if(!m||!c)return;const id=c.id,at=++mvAt,mine=q===c.own;mvPic=id;c.q=q;mvMenu(false);
-  $("mvP").textContent=mine?(q==="Bandmaster"?"The Bandmaster's part":"Your part: "+q):"Not yours: "+q;$("mvP").classList.toggle("oth",!mine);
+async function showPart(q){const m=me(),c=mvCur;if(!m||!c)return;const id=c.id,at=++mvAt,vw=isViewer(m),mine=q===c.own&&!vw;mvPic=id;c.q=q;mvMenu(false);
+  $("mvP").textContent=vw?q:mine?(q==="Bandmaster"?"The Bandmaster's part":"Your part: "+q):"Not yours: "+q;$("mvP").classList.toggle("oth",!mine&&!vw);$("mvP").classList.toggle("vw",vw);
   const fill=q==="Percussion"?(D.picFill||{})[id]:"";$("mvN").hidden=!fill;$("mvN").innerHTML=fill?'No percussion part<small>This is the '+esc(fill)+' part</small>':'';   // page text: the picture stays as printed
   $("mvB").innerHTML='<p class="mvm">Opening the music…</p>';$("mvPrint").disabled=true;
   const k=id+"|"+q;let src=mvCache.get(k);
@@ -867,9 +879,9 @@ async function showPart(q){const m=me(),c=mvCur;if(!m||!c)return;const id=c.id,a
 // open or close the menu's pop-up. The parts are listed afresh each time it opens.
 function mvMenu(open){const pop=$("mvPop"),btn=$("mvMenu"),c=mvCur;
   if(open&&c){const own=c.own,ownHas=((D.pics||{})[c.id]||[]).includes(own),cur=c.q||own;
-    const row=(p,mineRow)=>'<button type="button" class="mvpo" data-mvp="'+esc(p)+'"'+(p===cur?' aria-current="true"':'')+'><span>'+esc(partLabel(p))+'</span>'+(mineRow?'<small>Your part</small>':'')+'</button>';
+    const vw=isViewer(me()),row=(p,mineRow)=>'<button type="button" class="mvpo" data-mvp="'+esc(p)+'"'+(p===cur?' aria-current="true"':'')+'><span>'+esc(partLabel(p))+'</span>'+(mineRow?'<small>Your part</small>':'')+'</button>';
     const others=mvParts(c.id,own);
-    $("mvPl").innerHTML=(ownHas||others.length?'<div class="sec">Show a different part</div>':'')+(ownHas?row(own,true):'')+others.map(p=>row(p,false)).join("")}
+    $("mvPl").innerHTML=(ownHas||others.length?'<div class="sec">'+(vw?'Choose a part':'Show a different part')+'</div>':'')+(ownHas?row(own,!vw):'')+others.map(p=>row(p,false)).join("")}
   pop.hidden=!open;btn.setAttribute("aria-expanded",String(!!open));
   if(open){const f=$("mvPrint").disabled?pop.querySelector(".mvpo"):$("mvPrint");if(f)f.focus({preventScroll:true})}}
 // PRINT (v6.0: the printer button beside Close): an A4 PDF of the music on screen (the piece, the part, then the picture as large as fits), like the Hub's Print.
@@ -894,7 +906,7 @@ function a4Pdf(J,img,pages,head){const land=pages[0].w>pages[0].h,or=land?"lands
     doc.addImage(c.toDataURL("image/jpeg",0.9),"JPEG",(PW-w)/2,M+T,w,h,undefined,"FAST")});
   return doc}
 async function printMusic(){const img=$("mvB").querySelector("img"),b=$("mvPrint");mvMenu(false);if(!img||!img.naturalWidth){showMsg("Wait a moment","Tap Print once the music is showing.");return}
-  const sub=(mvCur&&mvCur.i?mvCur.i+" · ":"")+(mvCur?fmt(mvCur.s,true):""),pt=mvCur&&mvCur.q&&mvCur.q!==mvCur.own?mvCur.q:$("mvP").textContent;   // the PDF names the part, and the date
+  const sub=(mvCur&&mvCur.i?mvCur.i+" · ":"")+(mvCur?fmt(mvCur.s,true):""),pt=mvCur&&mvCur.q&&(mvCur.q!==mvCur.own||isViewer(me()))?mvCur.q:$("mvP").textContent;   // the PDF names the part, and the date
   let win=null;try{win=window.open("","_blank")}catch(e){}
   if(win){try{win.document.title="Making the PDF…";win.document.body.innerHTML='<p style="font:700 1.3rem sans-serif;padding:30px;text-align:center">Making the PDF…</p>'}catch(e){}}
   b.disabled=true;b.setAttribute("aria-label","Making the PDF…");
@@ -1005,7 +1017,7 @@ let dvSel=null,dvRosterY=0;
 // back from choosing a name: the Devotions Manager as it was (same Wednesdays, same scroll), without sliding in again
 function dvBackToRoster(){dvRoster();$("sheet").classList.add("still");$("sheetInner").scrollTop=dvRosterY}
 function dvChoose(w){const i=D.sessions.indexOf(w),cur=dvNow(w);dvSel=cur&&cur.p?{p:cur.p,m:cur.m||""}:null;
-  const ms=D.members.filter(x=>!x.test).sort((a,b)=>a.name.localeCompare(b.name));
+  const ms=D.members.filter(x=>!x.test&&!x.viewer).sort((a,b)=>a.name.localeCompare(b.name));
   // a page like Settings: the back arrow returns to the Devotions Manager without saving
   openSheet(pageTop('Who is doing devotions on '+esc(fmt(w,true))+'?',"Devotions Manager",'id="dvBack"')
    +'<p class="dvpick" id="dvPick" aria-live="polite">Choose a name, then tap Save.</p>'
@@ -1063,7 +1075,7 @@ const roleName=k=>ROLE_NAMES[k]||String(k||"").replace(/([a-z])([A-Z])/g,"$1 $2"
 function renderMenu(){const box=$("menuArea");if(!box)return;const m=me();
   const ini=m?m.name.split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase():"?";
   const rl=m?myRoles().map(roleName).filter(Boolean):[];
-  const inner='<span class="mav" aria-hidden="true">'+esc(ini)+'</span><span><b>'+esc(m?m.name:"Choose your name")+'</b>'+(m&&m.part?'<small class="inst2">'+esc(m.part)+'</small>':'')
+  const inner='<span class="mav" aria-hidden="true">'+esc(ini)+'</span><span><b>'+esc(m?m.name:"Choose your name")+'</b>'+(isViewer(m)?'<small class="inst2">Viewing only</small>':m&&m.part?'<small class="inst2">'+esc(m.part)+'</small>':'')
     +(rl.length?'<span class="mpills">'+rl.map(x=>'<span class="mpill">'+esc(x)+'</span>').join("")+'</span>':'')+'<small>Switch profile</small></span><span class="chev" aria-hidden="true">›</span>';
   const prof='<button type="button" class="mrow" id="switchAsk">'+inner+'</button>';
   box.innerHTML='<div class="mgrp">'+prof+'<button type="button" class="mrow" id="sizeBtn">'+IC_GEAR+'<span>Settings</span><span class="chev" aria-hidden="true">›</span></button></div>'+rolesHtml()}
@@ -1149,7 +1161,8 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)
 if(store.get("band.whoSince","")!==(D.pwSince||"")){who="";store.set("band.who","")}
 const sel=$("who");
 // a test user (for the Bandmaster to check the app) comes last, marked as a test
-sel.innerHTML+=D.members.filter(m=>m.player).slice().sort((a,b)=>(a.test?1:0)-(b.test?1:0)||a.formName.localeCompare(b.formName)).map(m=>'<option value="'+esc(m.id)+'">'+esc(m.formName||m.name)+(m.test?' (test user)':'')+'</option>').join("");
+const pickRank=m=>m.test?2:m.viewer?1:0;   // viewers (v7.2) come after the players, the test user last
+sel.innerHTML+=D.members.filter(m=>m.player||m.viewer).slice().sort((a,b)=>pickRank(a)-pickRank(b)||a.formName.localeCompare(b.formName)).map(m=>'<option value="'+esc(m.id)+'">'+esc(m.formName||m.name)+(m.test?' (test user)':m.viewer?' (viewing only)':'')+'</option>').join("");
 sel.addEventListener("change",()=>{$("pickGo").disabled=!sel.value;pickErr("")});
 function pickDone(id){who=id;store.set("band.who",who);store.set("band.whoSince",D.pwSince||"");if(!(memberById(id)||{}).test)store.set("band.lastWho",id);$("pick").hidden=true;
   const seen=store.get("band.noted",{}),m=me();if(m)myNotes().forEach(n=>{if(seen[n.id]===n.v)markNoted(n)});   // notes read before picking a name
@@ -1214,7 +1227,7 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="7.1";
+window.__bandAppVer="7.2";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
