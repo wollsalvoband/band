@@ -1,9 +1,10 @@
 // Wollongong Salvo Band app: keeps the app shell available offline and shows band alerts.
-// Roster data always comes live from the API. Pages are fetched fresh (no-cache) so app updates arrive straight away.
+// Roster data always comes live from the API. The app keeps members' saved music in its own band-music-* cache (v8.0),
+// which this worker never deletes. Pages are fetched fresh (no-cache) so app updates arrive straight away.
 const C = "band-shell-v5";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png"];
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(C).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" }))))); });
-self.addEventListener("activate", e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k)))).then(() => self.clients.claim())));
+self.addEventListener("activate", e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C && !/^band-music-/.test(k)).map(k => caches.delete(k)))).then(() => self.clients.claim())));
 self.addEventListener("fetch", e => {
   const u = new URL(e.request.url);
   if (e.request.method !== "GET" || u.origin !== location.origin) return;

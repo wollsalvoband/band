@@ -557,6 +557,7 @@ let recs=[];
 // button for their own part, and api=music only sends that part. Only in the band app (the Apps Script sends the picture).
 const partOn=(m,s)=>((D.alloc||{})[s]||{})[m.id]||m.part||"";
 function viewBtn(p,s,t,i){const m=me();if(!p||!m||!window.__bandApi||!(isViewer(m)?mvParts(p,"").length:((D.pics||{})[p]||[]).includes(partOn(m,s))))return "";
+  mpNote(p,s);
   return '<button type="button" class="musb" data-mv="'+esc(p)+'" data-s="'+s+'" data-t="'+esc(t)+'" data-i="'+esc(i||"")+'" aria-label="View your music for '+esc(t)+'">'+ICON.note+'View</button>'}
 // on a past date, poSun is the Sunday a play-out was planned for, so its label names the date. s = the date (for the part)
 // Words (v5.6): wk = the key of the piece's Words in D.words, opened in big print
@@ -752,7 +753,7 @@ function renderNotes(){const {fresh,old}=notesSplit();
   const b=$("mBadge");b.hidden=!fresh.length;b.textContent=fresh.length}
 function renderTabs(){for(const v of ["week","dates","msg","menu"])$("v-"+v).hidden=v!==tab;
   for(const b of document.querySelectorAll("#tbar button"))if(b.dataset.tab===tab)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")}
-function renderAll(){mergeX();renderTabs();renderNotes();renderWeek();renderDates();renderMenu();renderToast()}
+function renderAll(){mpWant.clear();mergeX();renderTabs();renderNotes();renderWeek();renderDates();renderMenu();renderToast();mpSchedule()}
 function setTab(t){tab=t;if(PAGEK.includes(sheetKind))closeSheet();if(t==="menu")renderMenu();renderTabs();window.scrollTo(0,0)}
 let hiddenAt=0;
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){hiddenAt=Date.now();return}
@@ -858,6 +859,34 @@ function updRangeBtn(n){const b=document.querySelector("[data-rgo]");if(!b)retur
 // v7.1: the menu button (beside Close) holds Print and the other parts this piece has music for (D.pics), so a player can
 // look at another part. It always opens on their own part. The heading has no date, to leave the music more room.
 const mvCache=new Map();let mvAt=0,mvPic="",mvCur=null;
+const mvSrc=r=>"data:"+(/^image\/(png|jpeg)$/.test(r.mime||"")?r.mime:"image/png")+";base64,"+r.b64;
+// v8.0: music saved on the phone. Once the Bandmaster makes music visible, the app quietly downloads the member's own part
+// of every piece with a View button today or later, one at a time, and keeps it in the phone's Cache Storage, so it opens
+// with no connection. Online, View still gets a fresh copy and updates the saved one. A new music push (D.musicAt) clears
+// the saved music so it downloads again, and copies no longer shown are removed. Words need nothing: they are in the data,
+// which the app already keeps on the phone (band.data).
+const MP_C="band-music-v1",mpWant=new Map();let mpT=0,mpRun=false,mpAgain=false;
+const mpOk=()=>typeof caches!=="undefined"&&!!window.__bandApi;
+const mpUrl=(mid,id,q)=>new URL("__music/"+encodeURIComponent(mid)+"/"+encodeURIComponent(id)+"/"+encodeURIComponent(q),location.href).href;
+function mpNote(p,s){if(s>=iso(new Date()))mpWant.set(s+"|"+p,{p:p,s:s})}
+async function mpGet(mid,id,q){if(!mpOk())return "";try{const r=await (await caches.open(MP_C)).match(mpUrl(mid,id,q));return r?await r.text():""}catch(e){return ""}}
+async function mpPut(mid,id,q,src){if(!mpOk())return;try{await (await caches.open(MP_C)).put(mpUrl(mid,id,q),new Response(src))}catch(e){}}
+// spread the downloads: phones start 5 to 35 seconds after the data arrives, so a music push doesn't hit the server all at once
+function mpSchedule(){if(!mpOk())return;if(mpRun){mpAgain=true;return}clearTimeout(mpT);mpT=setTimeout(mpSync,5000+Math.random()*30000)}
+async function mpSync(){const m=me();if(mpRun||!m||!mpOk())return;mpRun=true;mpAgain=false;
+  try{const c=await caches.open(MP_C),at=String(D.musicAt||"");
+    if(store.get("band.mpAt","")!==at){for(const k of await c.keys())await c.delete(k);mvCache.clear();store.set("band.mpAt",at)}
+    const vw=isViewer(m),keep=new Set(),todo=[];
+    for(const w of mpWant.values()){const q=vw?viewerPart(w.p):partOn(m,w.s);if(!q)continue;const u=mpUrl(m.id,w.p,q);
+      if(!keep.has(u)){keep.add(u);todo.push({p:w.p,s:w.s,q:q,u:u})}}
+    for(const k of await c.keys())if(!keep.has(k.url))await c.delete(k);
+    for(const t of todo){if(navigator.onLine===false)break;if(await c.match(t.u))continue;
+      try{const r=await window.__bandApi(Object.assign({api:"music",m:m.id,d:t.s,id:t.p},vw?{part:t.q}:{}));
+        if(r&&r.ok&&r.b64){const src=mvSrc(r);mvCache.set(t.p+"|"+t.q,src);await c.put(t.u,new Response(src))}}catch(e){}
+      await new Promise(f=>setTimeout(f,1000))}}
+  catch(e){}
+  mpRun=false;if(mpAgain)mpSchedule()}
+addEventListener("online",()=>mpSchedule());
 // the parts in the menu: their own first, then the band's order (the order of the members who play them), then the rest A-Z.
 // "Bandmaster" and "Trombone" (a flexible player's 1st or 2nd) only ever stand for other parts, so they're left out.
 function mvParts(id,own){const have=((D.pics||{})[id]||[]).filter(p=>p!=="Bandmaster"&&p!=="Trombone"),rank={};
@@ -877,9 +906,11 @@ async function showPart(q){const m=me(),c=mvCur;if(!m||!c)return;const id=c.id,a
   const fill=q==="Percussion"?(D.picFill||{})[id]:"";$("mvN").hidden=!fill;$("mvN").innerHTML=fill?'No percussion part<small>This is the '+esc(fill)+' part</small>':'';   // page text: the picture stays as printed
   $("mvB").innerHTML='<p class="mvm">Opening the music…</p>';$("mvPrint").disabled=true;
   const k=id+"|"+q;let src=mvCache.get(k);
-  try{if(!src){const r=await window.__bandApi(Object.assign({api:"music",m:m.id,d:c.s,id:id},mine?{}:{part:q}));
-      if(!r||!r.ok||!r.b64)throw new Error(r&&r.error==="none"?"none":"failed");
-      src="data:"+(/^image\/(png|jpeg)$/.test(r.mime||"")?r.mime:"image/png")+";base64,"+r.b64;mvCache.set(k,src)}
+  try{if(!src&&navigator.onLine===false)src=await mpGet(m.id,id,q);
+    if(!src){let r=null;try{r=await window.__bandApi(Object.assign({api:"music",m:m.id,d:c.s,id:id},mine?{}:{part:q}))}catch(e){}
+      if(r&&r.ok&&r.b64){src=mvSrc(r);mvCache.set(k,src);if(mine||vw)mpPut(m.id,id,q,src)}
+      else if(r&&r.error==="none")throw new Error("none");
+      else{src=await mpGet(m.id,id,q);if(!src)throw new Error("failed")}}
     if(at!==mvAt||$("mv").hidden)return;
     $("mvB").innerHTML='<img alt="Music for '+esc(c.t)+'" src="'+src+'">';$("mvPrint").disabled=false}
   catch(err){if(at!==mvAt||$("mv").hidden)return;
@@ -1237,7 +1268,7 @@ function setUpd(){const u=$("updNow"),b=$("refreshNow"),st=window.__bandStatus||
 (function(){
 "use strict";
 var API="https://script.google.com/macros/s/AKfycbyicvqPU2m1jZ4yLrbjZCFO2o-fEr2UdV1A44Wgd8dOGOhgwjMjfH__ndfWq8qbjNDX/exec",KK="band.k",KD="band.data";
-window.__bandAppVer="7.9";
+window.__bandAppVer="8.0";
 var st={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}},del:function(k){try{localStorage.removeItem(k)}catch(e){}}};
 var $=function(id){return document.getElementById(id)};
 function sha(s){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
